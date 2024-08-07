@@ -1,9 +1,14 @@
-STRIPE_SECRET=sk_test_51Piho9RxsxaX9o1H9BxUyGBzvzP2MXJPOybYn87797J05266oCOElnDznm0WvjroAiLyFtJmhzuCJCKktKbzyhhT00XetdqDqM
-STRIPE_KEY=pk_test_51Piho9RxsxaX9o1HPLFXYo1nLx675mhvyfYjSyhNxb8nSbx8rOFLjkbHcoeBwwrnJhsdF20RoJGYSnsYGfqJPUEu000hxS7wz3
-USUAL_STORE_PORT=4000
-API_PORT=4001
-#DSN=root@tcp(localhost:3306)/widgets?parseTime=true&tls=false
+ifneq (,$(wildcard ./.env))
+	include .env
+	export $(shell sed 's/=.*//' .env)
+endif
 
+run:
+	echo "Starting the application..."
+	@echo "Using Stripe Secret: $(STRIPE_SECRET)"
+	@echo "Using Stripe Key: $(STRIPE_KEY)"
+	@echo "Using Usual Store Port: $(USUAL_STORE_PORT)"
+	@echo "Using API Port: $(API_PORT)"
 
 ## build: builds all binaries
 build: clean build_front build_back
