@@ -1,9 +1,30 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, r, "terminal", nil); err != nil {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	// Get the publishable key from the environment variable
+	publishableKey := os.Getenv("PUBLISHABLE_KEY")
+	if publishableKey == "" {
+		log.Fatalf("PUBLISHABLE_KEY not set in .env file")
+	}
+	stringMap := make(map[string]string)
+	stringMap["publishable_key"] = publishableKey
+
+	if err := app.renderTemplate(w, r, "terminal", &templateData{
+		StringMap: stringMap,
+	}); err != nil {
 		app.errorLog.Println(err)
 	}
 }
