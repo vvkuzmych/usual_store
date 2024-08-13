@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"usual_store/internal/models"
 
 	"github.com/joho/godotenv"
 )
@@ -63,8 +64,18 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
+	widget := models.Widget{
+		ID:             1,
+		Name:           "Usual widget",
+		Description:    "Just good",
+		InventoryLevel: 8,
+		Price:          1500,
+	}
+	data := make(map[string]interface{})
+	data["widget"] = widget
 	if err := app.renderTemplate(w, r, "buy-once", &templateData{
 		StringMap: app.getEnvData(),
+		Data:      data,
 	}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
 	}
