@@ -3,23 +3,28 @@ package main
 import (
 	"embed"
 	"fmt"
+	"github.com/joho/godotenv"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
 type templateData struct {
-	StringMap       map[string]string
-	IntMap          map[string]int
-	FloatMap        map[string]float32
-	Data            map[string]interface{}
-	CSRFToken       string
-	Flash           string
-	Warning         string
-	Error           string
-	IsAuthenticated int
-	API             string
-	CSSVersion      string
+	StringMap            map[string]string
+	IntMap               map[string]int
+	FloatMap             map[string]float32
+	Data                 map[string]interface{}
+	CSRFToken            string
+	Flash                string
+	Warning              string
+	Error                string
+	IsAuthenticated      int
+	API                  string
+	CSSVersion           string
+	StripeSecretKey      string
+	StripePublishableKey string
 }
 
 var functions = template.FuncMap{
@@ -36,6 +41,11 @@ var templateFS embed.FS
 
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
 	td.API = app.config.api
+	env := app.getEnvData()
+	app.config.stripe.secret = env["stripe_secret"]
+	app.config.stripe.key = env["publishable_key"]
+	td.StripeSecretKey = app.config.stripe.secret
+	td.StripePublishableKey = app.config.stripe.key
 	return td
 }
 
@@ -89,4 +99,27 @@ func (app *application) parseTemplate(partials []string, page, templateToRender 
 	app.templateCache[templateToRender] = t
 
 	return t, nil
+}
+
+func (app *application) getEnvData() map[string]string {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
+	// Get the publishable key from the environment variable
+	publishableKey := os.Getenv("PUBLISHABLE_KEY")
+	if publishableKey == "" {
+		log.Fatalf("PUBLISHABLE_KEY not set in .env file")
+	}
+	stringMap := make(map[string]string)
+	stringMap["publishable_key"] = publishableKey
+
+	//Get the secret key from the environment variable
+	stripeSecret := os.Getenv("SECRET")
+	if stripeSecret == "" {
+		log.Fatalf("SECRET not set in .env file")
+	}
+	stringMap["stripe_secret"] = stripeSecret
+	return stringMap
 }
