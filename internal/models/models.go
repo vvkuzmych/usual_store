@@ -38,10 +38,18 @@ type Widget struct {
 func (m *DBModel) GetWidget(id int) (Widget, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	row := m.DB.QueryRowContext(ctx, "SELECT * FROM widgets WHERE id=?", id)
+	row := m.DB.QueryRowContext(ctx, "SELECT id, name, description, inventory_level, price, created_at, updated_at FROM widgets WHERE id=?", id)
 
 	var widget Widget
-	err := row.Scan(&widget.ID, &widget.Name, &widget.Description)
+	err := row.Scan(
+		&widget.ID,
+		&widget.Name,
+		&widget.Description,
+		&widget.InventoryLevel,
+		&widget.Price,
+		&widget.CreatedAt,
+		&widget.UpdatedAt,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return widget, fmt.Errorf("no widget found with id %d", id)
