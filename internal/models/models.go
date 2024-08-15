@@ -91,7 +91,7 @@ type User struct {
 func (m *DBModel) GetWidget(id int) (Widget, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	row := m.DB.QueryRowContext(ctx, "SELECT id, name, description, inventory_level, price, image, created_at, updated_at FROM widgets WHERE id=?", id)
+	row := m.DB.QueryRowContext(ctx, `SELECT id, name, description, inventory_level, price, COALESCE(image, ""), created_at, updated_at FROM widgets WHERE id=?`, id)
 
 	var widget Widget
 	err := row.Scan(

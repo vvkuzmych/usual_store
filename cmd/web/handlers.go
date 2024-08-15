@@ -1,8 +1,9 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
 	"net/http"
-	"usual_store/internal/models"
+	"strconv"
 )
 
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +41,16 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
-	widget := models.Widget{
-		ID:             1,
-		Name:           "Usual widget",
-		Description:    "Just good",
-		InventoryLevel: 8,
-		Price:          1500,
+	id := chi.URLParam(r, "id")
+	widgetID, _ := strconv.Atoi(id)
+
+	widget, err := app.DB.GetWidget(widgetID)
+	if err != nil {
+		app.errorLog.Println(err)
+		http.Error(w, "Widget not found", http.StatusNotFound)
+		return
 	}
+
 	data := make(map[string]interface{})
 	data["widget"] = widget
 	if err := app.renderTemplate(w, r, "buy-once", &templateData{
