@@ -1,7 +1,0 @@
-development:
-  dialect: mysql
-  database: widgets
-  user: ${DB_USER}
-  password: ${DB_PASSWORD}
-  host: ${DB_HOST}
-  pool: ${DB_POOL}
