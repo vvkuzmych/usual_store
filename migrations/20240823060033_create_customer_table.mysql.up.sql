@@ -1,9 +1,19 @@
--- Create the users table
 CREATE TABLE customers (
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    id INTEGER UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+DESCRIBE customers;
+
+ALTER TABLE `orders`
+    ADD COLUMN `customer_id` INT UNSIGNED;
+
+ALTER TABLE `orders`
+    ADD CONSTRAINT `fk_customer_id`
+        FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`)
+            ON DELETE CASCADE
+            ON UPDATE CASCADE;

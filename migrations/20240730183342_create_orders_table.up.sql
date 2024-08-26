@@ -8,7 +8,7 @@ CREATE TABLE orders (
     amount INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (widget_id) REFERENCES widgets(id)
+    FOREIGN KEY (widget_id) REFERENCES widgets(widget_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id)
@@ -18,6 +18,3 @@ CREATE TABLE orders (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
-
--- Insert example data into orders
--- You would typically insert data after ensuring your schema is in place

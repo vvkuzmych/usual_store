@@ -74,7 +74,7 @@ type Transaction struct {
 	ExpiryMonth         int       `json:"expiry_month"`
 	ExpiryYear          int       `json:"expiry_year"`
 	BankReturnCode      string    `json:"bank_return_code"`
-	TransactionStatusID string    `json:"transaction_status_id"`
+	TransactionStatusID int       `json:"transaction_status_id"`
 	CreatedAt           time.Time `json:"-"`
 	UpdatedAt           time.Time `json:"-"`
 }
@@ -158,24 +158,34 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 func (m *DBModel) InsertOrder(order Order) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+	// Check if widget_id exists
+	var widgetExists bool
+	err := m.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM widgets WHERE id = ?)", order.WidgetID).Scan(&widgetExists)
+	if err != nil {
+		return 0, fmt.Errorf("could not check widget existence: %v", err)
+	}
+	if !widgetExists {
+		return 0, fmt.Errorf("widget_id %d does not exist", order.WidgetID)
+	}
 
 	stmt := `
-				INSERT INTO transactions 
-				(widget_id, transaction_id, status_id, quantity, amount, created_at, updated_at)
-				VALUES(?, ?, ?, ?, ?, ?, ?)
-				`
+        INSERT INTO orders 
+        (widget_id, transaction_id, status_id, quantity, customer_id, amount)
+        VALUES(?, ?, ?, ?, ?, ?)
+        `
+
 	result, err := m.DB.ExecContext(ctx, stmt,
-		order.Amount,
 		order.WidgetID,
 		order.TransactionID,
 		order.StatusID,
 		order.Quantity,
-		time.Now(),
-		time.Now(),
+		order.CustomerID,
+		order.Amount,
 	)
 	if err != nil {
 		return 0, err
 	}
+
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
@@ -185,27 +195,33 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 
 // InsertCustomer insert a new customer and returns new id
 func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
+	// Create a context with a 3-second timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	// Prepare the SQL statement
 	stmt := `
-				INSERT INTO customers 
-				(first_name, last_name, email, created_at, updated_at)
-				VALUES(?, ?, ?, ?, ?)
-				`
+		INSERT INTO customers 
+		(first_name, last_name, email)
+		VALUES(?, ?, ?)
+	`
+
+	// Execute the SQL statement
 	result, err := m.DB.ExecContext(ctx, stmt,
 		customer.FirstName,
 		customer.LastName,
 		customer.Email,
-		time.Now(),
-		time.Now(),
 	)
 	if err != nil {
 		return 0, err
 	}
+
+	// Retrieve the last inserted ID
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
+
+	// Return the inserted ID
 	return int(id), nil
 }
