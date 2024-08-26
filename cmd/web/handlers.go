@@ -71,6 +71,8 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		LastFour:            lastFour,
 		ExpiryMonth:         int(expiryMonth),
 		ExpiryYear:          int(expiryYear),
+		PaymentIntent:       paymentIntent,
+		PaymentMethod:       paymentMethod,
 		BankReturnCode:      pi.Charges.Data[0].ID,
 		TransactionStatusID: 2,
 	}
