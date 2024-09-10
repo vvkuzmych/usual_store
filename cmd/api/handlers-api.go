@@ -9,8 +9,12 @@ import (
 )
 
 type stripePayload struct {
-	Currency string `json:"currency"`
-	Amount   string `json:"amount"`
+	Currency      string `json:"currency"`
+	Amount        string `json:"amount"`
+	PaymentMethod string `json:"payment_method"`
+	Email         string `json:"email"`
+	LastFour      string `json:"last_four"`
+	Plan          string `json:"plan"`
 }
 
 type jsonResponse struct {
@@ -85,6 +89,31 @@ func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		app.errorLog.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
+}
+
+func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, r *http.Request) {
+	var data stripePayload
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+	app.infoLog.Println(data.LastFour, data.Email, data.PaymentMethod, data.Plan)
+
+	ok := true
+	msg := ""
+
+	response := jsonResponse{
+		OK:      ok,
+		Message: msg,
+	}
+	out, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		app.errorLog.Println(err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

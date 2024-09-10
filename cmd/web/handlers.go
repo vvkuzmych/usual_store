@@ -256,10 +256,16 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) GoldenPlan(w http.ResponseWriter, r *http.Request) {
-	intMap := make(map[string]int)
-	intMap["plan_id"] = 1
+	widget, err := app.DB.GetWidget(2)
+	if err != nil {
+		app.errorLog.Println(err)
+		//http.Error(w, "Widget not found", http.StatusNotFound)
+		return
+	}
+	data := make(map[string]interface{})
+	data["widget"] = widget
 	if err := app.renderTemplate(w, r, "golden-plan", &templateData{
-		IntMap: intMap,
+		Data: data,
 	}); err != nil {
 		app.errorLog.Println(err)
 		return
