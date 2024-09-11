@@ -61,13 +61,14 @@
 
 {{define "js"}}
     <script>
+        checkAuth();
         document.getElementById("charge_amount").addEventListener("change", function (event){
             if (event.target.value !== "") {
                 document.getElementById("amount").value = parseInt((event.target.value * 100), 10);
             } else {
                 document.getElementById("amount").value = 0;
             }
-        })
+        });
     </script>
 {{template "stripe-js" .}}
 {{end}}

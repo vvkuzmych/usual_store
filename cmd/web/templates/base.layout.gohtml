@@ -39,8 +39,8 @@
                             <li><a class="dropdown-item" href="/plans/golden">Subscription</a></li>
                         </ul>
                     </li>
-                    <li id="vt-link" class="nav-item">
-                        <a class="nav-link d-none" href="/virtual-terminal">Virtual Terminal</a>
+                    <li id="vt-link" class="nav-item d-none">
+                        <a class="nav-link" href="/virtual-terminal">Virtual Terminal</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -79,6 +79,33 @@
             localStorage.removeItem("token")
             localStorage.removeItem("token_expiry")
             location.href = "/login"
+        }
+
+        function checkAuth() {
+            if (localStorage.getItem("token") === null) {
+               location.href = "/login";
+               return
+            } else {
+                let token = localStorage.getItem("token");
+                const myHeaders = new Headers();
+                myHeaders.append("Content-Type", "application/json")
+                myHeaders.append("Authorization", "Bearer " + token);
+
+                const requestOptions = {
+                    method: "POST",
+                    headers: myHeaders,
+                }
+                fetch("{{.API}}/api/is-authenticated", requestOptions)
+                    .then(response => response.json())
+                    .then(function (data) {
+                        if (data.error === true) {
+                            console.log("not logged in");
+                            location.href = "/login";
+                        } else {
+                            console.log("Logged in");
+                        }
+                    })
+            }
         }
     </script>
     {{block "js" .}}
