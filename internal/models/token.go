@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
+	"log"
 	"time"
 )
 
@@ -58,4 +59,25 @@ func (m *DBModel) InsertToken(token *Token, user User) error {
 		return err
 	}
 	return nil
+}
+
+func (m *DBModel) GetUserForToken(token string) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user User
+	tokenHash := sha256.Sum256([]byte(token))
+
+	query := `SELECT 
+    u.id, u.last_name, u.email, u.first_name 
+    FROM users u 
+    INNER JOIN tokens t ON u.user_id = t.user_id 
+    WHERE t.hash = ?`
+	err := m.DB.QueryRowContext(ctx, query, tokenHash[:]).Scan(
+		&user.ID, &user.LastName, &user.Email, &user.FirstName,
+	)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return &user, nil
 }

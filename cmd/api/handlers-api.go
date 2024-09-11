@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v72"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"usual_store/internal/cards"
 	"usual_store/internal/models"
@@ -289,6 +291,44 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 }
 
 func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Request) {
-	app.invalidCredentials(w)
+	user, err := app.authenticateToken(r)
+	if err != nil {
+		app.invalidCredentials(w)
+		return
+	}
 
+	var payload struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	payload.Error = false
+	payload.Message = fmt.Sprintf("Token for user %s created.", user.Email)
+	app.writeJSON(w, http.StatusOK, payload)
+
+}
+
+func (app *application) authenticateToken(r *http.Request) (*models.User, error) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return nil, errors.New("Missing Authorization header")
+	}
+
+	headerParts := strings.Split(authHeader, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" || headerParts[1] == "" {
+		return nil, errors.New("Invalid Authorization header")
+	}
+
+	tokenString := headerParts[1]
+	if tokenString == "" {
+		return nil, errors.New("Invalid Authorization header - no token found")
+	}
+	if len(tokenString) != 26 {
+		return nil, errors.New("Invalid Authorization header - wrong length")
+	}
+	user, err := app.DB.GetUserForToken(tokenString)
+	if err != nil {
+		return nil, errors.New("Invalid Authorization header - matching token not found")
+	}
+
+	return user, nil
 }
