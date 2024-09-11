@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -236,4 +237,31 @@ func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
 
 	// Return the inserted ID
 	return int(id), nil
+}
+
+// GetUserByEmail gets user by email address
+func (m *DBModel) GetUserByEmail(email string) (User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	email = strings.ToLower(email)
+	var user User
+	row := m.DB.QueryRowContext(ctx, `SELECT id, first_name, last_name, email, password, created_at, updated_at FROM users WHERE email=?`, email)
+	err := row.Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return user, fmt.Errorf("no user found with email %s", email)
+		}
+		return user, err
+	}
+
+	return user, nil
 }
