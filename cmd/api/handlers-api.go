@@ -231,3 +231,29 @@ func (app *application) SaveOrder(order models.Order) (int, error) {
 	}
 	return id, nil
 }
+
+// CreateAuthToken handle creating authenticate token
+func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) {
+	var userInput struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	err := app.readJSON(w, r, &userInput)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+	var payload struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	payload.Error = false
+	payload.Message = "User Input Success"
+	out, _ := json.MarshalIndent(payload, "", "\t")
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+	w.Write(out)
+}
