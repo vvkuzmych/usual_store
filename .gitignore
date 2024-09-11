@@ -2,3 +2,4 @@
 .env
 dist
 tmp
+static/.DS_Store
