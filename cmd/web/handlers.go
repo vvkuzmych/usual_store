@@ -272,3 +272,11 @@ func (app *application) GoldenPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func (app *application) GoldenPlanReceipt(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "receipt-plan", &templateData{}); err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+}
