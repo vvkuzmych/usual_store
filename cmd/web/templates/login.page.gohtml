@@ -7,7 +7,7 @@
 {{define "content"}}
     <div class="col-md-6 offset-md-2">
         <div class="alert alert-danger text-center d-none" id="login-messages"></div>
-        <form action="" method="post"
+        <form action="" method="post" action="/login"
               name="login_form" id="login_form"
               class="d-block needs-validation login-form"
               autocomplete="off" novalidate="">
@@ -76,9 +76,9 @@
                     console.log(data)
                     if (data.error === false) {
                         localStorage.setItem('token', data.authentication_token.token)
-                        localStorage.setItem('token_expiry', data.authentication_token.token_expiry)
+                        localStorage.setItem('token_expiry', data.authentication_token.expiry)
                         showSuccess()
-                        location.href = "/";
+                        document.getElementById("login_form").submit();
                     } else {
                         showError(data.message);
                     }
