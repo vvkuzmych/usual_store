@@ -23,8 +23,9 @@ func (app *application) routes() http.Handler {
 
 		mux.Get("/test", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("OK, got into template"))
-
 		})
+
+		mux.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
 	})
 
 	mux.Post("/api/payment-intent", app.GetPaymentIntent)
