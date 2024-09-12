@@ -335,7 +335,7 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 
 func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r *http.Request) {
 	var txnData struct {
-		PaymentAmount   int    `json:"payment_amount"`
+		PaymentAmount   int    `json:"amount"`
 		PaymentCurrency string `json:"payment_currency"`
 		FirstName       string `json:"first_name"`
 		LastName        string `json:"last_name"`
@@ -382,6 +382,8 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		ExpiryMonth:         txnData.ExpiryMonth,
 		ExpiryYear:          txnData.ExpiryYear,
 		BankReturnCode:      pi.Charges.Data[0].ID,
+		PaymentMethod:       txnData.PaymentMethod,
+		PaymentIntent:       txnData.PaymentIntent,
 		TransactionStatusID: 2,
 	}
 	_, err = app.SaveTransaction(txn)

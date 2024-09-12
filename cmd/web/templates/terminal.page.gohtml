@@ -178,7 +178,7 @@
 
         function saveTransaction(result) {
             let payload = {
-                amount: parseInt(document.getElementById("amount").value),
+                amount: parseInt(document.getElementById("amount").value, 10),
                 currency: result.paymentIntent.currency,
                 first_name: "",
                 last_name: "",
