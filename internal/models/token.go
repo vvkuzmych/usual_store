@@ -70,8 +70,8 @@ func (m *DBModel) GetUserForToken(token string) (*User, error) {
 	query := `SELECT 
     u.id, u.last_name, u.email, u.first_name 
     FROM users u 
-    INNER JOIN tokens t ON u.user_id = t.user_id 
-    WHERE t.hash = ?`
+    INNER JOIN tokens t ON u.id = t.user_id 
+    WHERE t.token_hash = ?`
 	err := m.DB.QueryRowContext(ctx, query, tokenHash[:]).Scan(
 		&user.ID, &user.LastName, &user.Email, &user.FirstName,
 	)
