@@ -23,6 +23,12 @@ type config struct {
 		secret string
 		key    string
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+	}
 }
 
 type application struct {
@@ -54,6 +60,10 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "root:admin123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "Database DSN")
 	flag.StringVar(&cfg.env, "env", "development", "Application enviornment {development|production|maintenance}")
+	flag.StringVar(&cfg.smtp.host, "smtphost", "smtp.mailtrap.io", "smtp host")
+	flag.StringVar(&cfg.smtp.password, "smtppassword", "8d80f34d4bbe3d", "smtp password")
+	flag.StringVar(&cfg.smtp.username, "smtpuser", "d43e9bfd6010ba", "smtp user")
+	flag.IntVar(&cfg.smtp.port, "smtpport", 587, "smtp port to listen on")
 
 	flag.Parse()
 
