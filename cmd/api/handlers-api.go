@@ -409,5 +409,17 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		Link string `json:"link"`
 	}
 	data.Link = "http://google.com"
+	err = app.SendEmail("info@usual_store.com", "info@usual_store.com", "Password Reset Request", "password-reset", data)
+	if err != nil {
+		app.badRequest(w, r, err)
+		app.badRequest(w, r, err)
+		return
+	}
 
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	resp.Error = false
+	app.writeJSON(w, http.StatusCreated, resp)
 }

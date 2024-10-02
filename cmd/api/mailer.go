@@ -29,7 +29,7 @@ func (app *application) SendEmail(from, to, subject, tmpl string, data interface
 
 	formattedMessage := tpl.String()
 
-	templateToRender = fmt.Sprintf("templates/%s.plain.tmlp", tmpl)
+	templateToRender = fmt.Sprintf("templates/%s.plain.tmpl", tmpl)
 
 	t, err = template.New("email-plain").ParseFS(emailTemplatesFS, templateToRender)
 	if err != nil {
