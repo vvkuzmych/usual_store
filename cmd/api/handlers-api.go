@@ -12,6 +12,7 @@ import (
 	"time"
 	"usual_store/internal/cards"
 	"usual_store/internal/models"
+	"usual_store/internal/urlsigner"
 )
 
 const contentType = "Content-Type"
@@ -408,10 +409,30 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// verify existing email in DB
+	_, err = app.DB.GetUserByEmail(payload.Email)
+	if err != nil {
+		var resp struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+		resp.Error = true
+		resp.Message = "No matching email found in DB"
+		app.writeJSON(w, http.StatusAccepted, resp)
+		return
+	}
+
+	link := fmt.Sprintf("%s/reset-password?email=%s", app.config.frontend, payload.Email)
+
+	sign := urlsigner.Signer{
+		Secret: []byte(app.config.secretkey),
+	}
+	signedLink := sign.GenerateTokenFromString(link)
+
 	var data struct {
 		Link string `json:"link"`
 	}
-	data.Link = "http://google.com"
+	data.Link = signedLink
 
 	//send email
 	err = app.SendEmail("info@usual_store.com", "info@usual_store.com", "Password Reset Request", "password-reset", data)
