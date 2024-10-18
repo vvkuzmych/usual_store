@@ -14,6 +14,9 @@ import (
 	"usual_store/internal/models"
 )
 
+const contentType = "Content-Type"
+const applicationJson = "application/json"
+
 type stripePayload struct {
 	Currency      string `json:"currency"`
 	Amount        string `json:"amount"`
@@ -69,7 +72,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(contentType, applicationJson)
 		w.Write(out)
 	} else {
 		j := jsonResponse{
@@ -82,7 +85,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			app.errorLog.Println(err)
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(contentType, applicationJson)
 		w.Write(out)
 	}
 }
@@ -103,7 +106,7 @@ func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJson)
 	w.Write(out)
 }
 
@@ -198,7 +201,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		app.errorLog.Println(err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, "application/json")
 	w.Write(out)
 }
 
@@ -409,6 +412,8 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		Link string `json:"link"`
 	}
 	data.Link = "http://google.com"
+
+	//send email
 	err = app.SendEmail("info@usual_store.com", "info@usual_store.com", "Password Reset Request", "password-reset", data)
 	if err != nil {
 		app.badRequest(w, r, err)
