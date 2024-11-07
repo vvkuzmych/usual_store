@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 	"usual_store/internal/cards"
 	"usual_store/internal/models"
+	"usual_store/internal/urlsigner"
 )
 
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
@@ -323,4 +325,28 @@ func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+
+// ShowResetPassword reset password
+func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request) {
+	url := r.RequestURI
+	testUrl := fmt.Sprintf("%s%s", app.config.frontend, url)
+
+	signer := urlsigner.Signer{
+		Secret: []byte(app.config.secretkey),
+	}
+
+	valid := signer.VerifyToken(testUrl)
+	if !valid {
+		app.errorLog.Println("Invalid url")
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["email"] = r.URL.Query().Get("email")
+	if err := app.renderTemplate(w, r, "reset-password", &templateData{
+		Data: data,
+	}); err != nil {
+		app.errorLog.Println(err)
+	}
 }
