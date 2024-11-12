@@ -8,7 +8,7 @@ CREATE TABLE orders (
     amount INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (widget_id) REFERENCES widgets(widget_id)
+    FOREIGN KEY (widget_id) REFERENCES widgets(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id)
