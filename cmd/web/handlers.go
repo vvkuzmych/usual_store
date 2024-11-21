@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"usual_store/internal/cards"
+	"usual_store/internal/encryption"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
 )
@@ -349,8 +350,20 @@ func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	encryptor := encryption.Encryption{
+		Key: []byte(app.config.secretkey),
+	}
+
+	email := r.URL.Query().Get("email")
+
+	encryptedEmail, err := encryptor.Encrypt(email)
+	if err != nil {
+		app.errorLog.Println("Encrypt error:", err)
+	}
+
 	data := make(map[string]interface{})
-	data["email"] = r.URL.Query().Get("email")
+	data["email"] = encryptedEmail
+
 	if err := app.renderTemplate(w, r, "reset-password", &templateData{
 		Data: data,
 	}); err != nil {
