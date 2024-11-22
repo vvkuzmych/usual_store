@@ -46,5 +46,5 @@ func (e *Encryption) Decrypt(ciphertext string) (string, error) {
 	stream := cipher.NewCFBDecrypter(block, iv)
 	stream.XORKeyStream(cipherBytes, cipherBytes)
 
-	return fmt.Sprintf("%s", string(cipherBytes)), nil
+	return fmt.Sprintf("%s", cipherBytes), nil
 }

@@ -330,6 +330,8 @@ func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 // ShowResetPassword reset password
 func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+
 	url := r.RequestURI
 	testUrl := fmt.Sprintf("%s%s", app.config.frontend, url)
 
@@ -353,8 +355,6 @@ func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request
 	encryptor := encryption.Encryption{
 		Key: []byte(app.config.secretkey),
 	}
-
-	email := r.URL.Query().Get("email")
 
 	encryptedEmail, err := encryptor.Encrypt(email)
 	if err != nil {

@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
@@ -277,13 +278,13 @@ func (m *DBModel) Authenticate(email, password string) (int, error) {
 	row := m.DB.QueryRowContext(ctx, "SELECT id, password FROM users WHERE email=?", email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return id, fmt.Errorf("no user found with email %s", email)
 		}
 		return id, err
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	if err == bcrypt.ErrMismatchedHashAndPassword {
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return 0, fmt.Errorf("invalid password")
 	} else if err != nil {
 		return 0, err
@@ -291,12 +292,16 @@ func (m *DBModel) Authenticate(email, password string) (int, error) {
 	return id, nil
 }
 
-func (m *DBModel) UpdatePasswordForUser(u User, hash string) error {
+func (m *DBModel) UpdatePasswordForUser(user User, hash string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	stmt := `update users set password = ? where id = ?`
-	_, err := m.DB.ExecContext(ctx, stmt, hash, u.ID)
+	stmt := `
+	UPDATE users
+    SET password = ?
+    WHERE id = ?
+    `
+	_, err := m.DB.ExecContext(ctx, stmt, hash, user.ID)
 	if err != nil {
 		return err
 	}
