@@ -8,7 +8,3 @@ CREATE TABLE widgets (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
--- Insert a record into the widgets table
-INSERT INTO widgets (name, description, inventory_level, price, created_at, updated_at)
-VALUES ('Widget', 'A very nice widget.', 10, 1000, NOW(), NOW());
