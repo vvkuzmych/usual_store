@@ -1,0 +1,8 @@
+1. Refactor handler-api.go and similar files  - create folder `http` in order to put there
+   handler and everything that is connected to handler.
+
+2. Coverage - cover with tests most of the code. Rate is 80% and higher.
+
+3. add automatic generated mocks.
+
+4. in Migration create file that generate seeding.
