@@ -6,3 +6,5 @@
 3. add automatic generated mocks.
 
 4. in Migration create file that generate seeding.
+
+5. add linter and precommit hook to check if there is no fails in test after adding tests
