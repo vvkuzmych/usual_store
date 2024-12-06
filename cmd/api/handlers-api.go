@@ -43,6 +43,7 @@ type jsonResponse struct {
 	ID      int    `json:"id,omitempty"`
 }
 
+// GetPaymentIntent get payment intent
 func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var payload stripePayload
 	err := json.NewDecoder(r.Body).Decode(&payload)
@@ -55,11 +56,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		app.errorLog.Println(err)
 	}
 
-	card := cards.Card{
-		Secret:   app.config.stripe.secret,
-		Key:      app.config.stripe.key,
-		Currency: payload.Currency,
-	}
+	card := mappingPayloadToCard(app, payload)
 
 	ok := true
 
@@ -94,6 +91,7 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GetWidgetByID get widget by id
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	widgetID, _ := strconv.Atoi(id)
@@ -114,6 +112,7 @@ func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
+// CreateCustomerAndSubscribeToPlan create customer and subscribe to plan
 func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, r *http.Request) {
 	var data stripePayload
 	err := json.NewDecoder(r.Body).Decode(&data)
@@ -123,11 +122,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 	}
 	app.infoLog.Println(data.LastFour, data.Email, data.PaymentMethod, data.Plan)
 
-	card := cards.Card{
-		Secret:   app.config.stripe.secret,
-		Key:      app.config.stripe.key,
-		Currency: data.Currency,
-	}
+	card := mappingPayloadToCard(app, data)
 
 	ok := true
 	var subscription *stripe.Subscription
@@ -207,6 +202,15 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 	}
 	w.Header().Set(contentType, "application/json")
 	w.Write(out)
+}
+
+func mappingPayloadToCard(app *application, data stripePayload) cards.Card {
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: data.Currency,
+	}
+	return card
 }
 
 // SaveCustomer saves customer and returns id
@@ -359,10 +363,8 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 		return
 	}
 
-	card := cards.Card{
-		Secret: app.config.stripe.secret,
-		Key:    app.config.stripe.key,
-	}
+	payload := stripePayload{}
+	card := mappingPayloadToCard(app, payload)
 
 	pi, err := card.RetrievePaymentIntent(txnData.PaymentIntent)
 	if err != nil {
