@@ -248,7 +248,8 @@ func (m *DBModel) GetUserByEmail(email string) (User, error) {
 
 	email = strings.ToLower(email)
 	var user User
-	row := m.DB.QueryRowContext(ctx, `SELECT id, first_name, last_name, email, password, created_at, updated_at FROM users WHERE email=?`, email)
+	// Update query to use $1 for parameterized query in PostgreSQL
+	row := m.DB.QueryRowContext(ctx, `SELECT id, first_name, last_name, email, password, created_at, updated_at FROM users WHERE email=$1`, email)
 	err := row.Scan(
 		&user.ID,
 		&user.FirstName,
@@ -275,7 +276,7 @@ func (m *DBModel) Authenticate(email, password string) (int, error) {
 	var id int
 	var hashedPassword string
 
-	row := m.DB.QueryRowContext(ctx, "SELECT id, password FROM users WHERE email=?", email)
+	row := m.DB.QueryRowContext(ctx, "SELECT id, password FROM users WHERE email=$1", email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

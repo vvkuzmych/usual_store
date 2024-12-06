@@ -1,19 +1,18 @@
 CREATE TABLE customers (
-    id INTEGER UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-DESCRIBE customers;
+-- Alter the orders table to add customer_id column
+ALTER TABLE orders ADD COLUMN customer_id INT;
 
-ALTER TABLE `orders`
-    ADD COLUMN `customer_id` INT UNSIGNED;
-
-ALTER TABLE `orders`
-    ADD CONSTRAINT `fk_customer_id`
-        FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`)
+-- Add foreign key constraint to the orders table referencing the customers table
+ALTER TABLE orders
+    ADD CONSTRAINT fk_customer_id
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
             ON DELETE CASCADE
             ON UPDATE CASCADE;

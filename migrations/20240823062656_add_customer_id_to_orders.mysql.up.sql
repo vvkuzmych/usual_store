@@ -1,5 +1,5 @@
 
-ALTER TABLE orders ADD COLUMN customer_id INTEGER UNSIGNED;
+ALTER TABLE orders ADD COLUMN customer_id INTEGER;
 
 ALTER TABLE orders
     ADD CONSTRAINT fk_customer_id

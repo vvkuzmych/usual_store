@@ -1,10 +1,10 @@
 -- Create the widgets table
 CREATE TABLE widgets (
-    id INTEGER UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    inventory_level INTEGER,
-    price INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+     id              SERIAL PRIMARY KEY,
+     name            VARCHAR(255) NOT NULL,
+     description     TEXT,
+     inventory_level INTEGER,
+     price           INTEGER,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

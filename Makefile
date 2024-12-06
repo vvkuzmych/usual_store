@@ -87,3 +87,32 @@ mock_user_repository:
 	@echo "Mock for UserRepository generated successfully!"
 
 # Add more mock generation rules as needed
+
+# Variables for database connection
+# Variables for soda command
+SODA_CMD=/opt/homebrew/bin/soda  # Correct path to the soda binary
+
+# Target to run migrations
+migrate:
+	$(SODA_CMD) migrate up
+
+# Target to run the rollback (optional)
+rollback:
+	$(SODA_CMD) migrate down
+
+# Target to create a new migration (optional)
+new-migration:
+	$(SODA_CMD) generate migration $(MIGRATION_NAME)
+
+# Target to apply migrations
+migrate-up: migrate
+
+# Target to create the database (if needed)
+create-db:
+	psql -c "CREATE DATABASE usualstore;" -U postgres
+
+# Target to drop the database (if needed)
+drop-db:
+	psql -c "DROP DATABASE usualstore;" -U postgres
+
+.PHONY: migrate rollback new-migration migrate-up create-db drop-db

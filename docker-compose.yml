@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  front-end:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./usualstore -port=${USUAL_STORE_PORT}
+    environment:
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - STRIPE_KEY=${STRIPE_KEY}
+      - USUAL_STORE_PORT=${USUAL_STORE_PORT}
+      - DATABASE_URL=postgres://postgres:password@database:5432/usualstore
+    ports:
+      - "${USUAL_STORE_PORT}:${USUAL_STORE_PORT}"
+    env_file:
+      - .env
+    depends_on:
+      - back-end
+
+  back-end:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./usualstore_api -port=${API_PORT}
+    environment:
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - STRIPE_KEY=${STRIPE_KEY}
+      - API_PORT=${API_PORT}
+      - DATABASE_URL=postgres://postgres:password@database:5432/usualstore
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    env_file:
+      - .env
+    depends_on:
+      - database
+
+  database:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: usualstore
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "usualstore" ]
+      interval: 10s
+      retries: 5
+
+volumes:
+  db_data:

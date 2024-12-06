@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -69,16 +71,29 @@ func (app *application) serve() error {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
-		// Wait for a signal and gracefully shut down
+		// Wait for a signal
 		<-ch
-		app.infoLog.Println("Shutting down server...")
-		if err := srv.Shutdown(nil); err != nil {
-			app.errorLog.Println("Server Shutdown:", err)
+		app.infoLog.Println("Shutting down server gracefully...")
+
+		// Create a context with a timeout for the shutdown
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Attempt graceful shutdown
+		if err := srv.Shutdown(ctx); err != nil {
+			app.errorLog.Printf("Error during server shutdown: %v", err)
 		}
 	}()
 
 	// Start the server
-	return srv.ListenAndServe()
+	err := srv.ListenAndServe()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err // Only return unexpected errors
+	}
+
+	// Log successful shutdown
+	app.infoLog.Println("Server stopped successfully.")
+	return nil
 }
 
 func main() {
@@ -86,7 +101,8 @@ func main() {
 
 	// Parse command-line flags
 	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "root:admin123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "Database DSN")
+	//flag.StringVar(&cfg.db.dsn, "db-dsn", "root:admin123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "Database DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:password@database:5432/usualstore?sslmode=disable", "Database DSN")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {development|production|maintenance}")
 	flag.StringVar(&cfg.smtp.host, "smtphost", "smtp.mailtrap.io", "smtp host")
 	flag.StringVar(&cfg.smtp.password, "smtppassword", "8d80f34d4bbe3d", "smtp password")
