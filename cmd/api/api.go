@@ -9,6 +9,7 @@ import (
 	"time"
 	"usual_store/internal/driver"
 	"usual_store/internal/models"
+	"usual_store/internal/pkg/service"
 )
 
 const version = "1.0.0"
@@ -34,11 +35,12 @@ type config struct {
 }
 
 type application struct {
-	config   config
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	version  string
-	DB       models.DBModel
+	config       config
+	infoLog      *log.Logger
+	errorLog     *log.Logger
+	version      string
+	DB           models.DBModel
+	tokenService service.TokenService
 }
 
 func (app *application) serve() error {

@@ -3,6 +3,9 @@ ifneq (,$(wildcard ./.env))
 	export $(shell sed 's/=.*//' .env)
 endif
 
+# Mock generation binary path
+MOCKGEN := $(shell go env GOPATH)/bin/mockgen
+
 run:
 	echo "Starting the application..."
 	@echo "Using Stripe Secret: $(STRIPE_SECRET)"
@@ -63,3 +66,24 @@ stop_back:
 	@echo "Stopping the back end..."
 	@-pkill -SIGTERM -f "usualstore_api -port=${API_PORT}"
 	@echo "Stopped back end"
+## mock: generates mocks for all repositories
+mock: mock_token_repository mock_user_repository # Add additional mocks here
+	@echo "All mocks generated successfully!"
+
+## mock_token_repository: generates mocks for the TokenRepository
+mock_token_repository:
+	@echo "Generating mock for TokenRepository..."
+	$(MOCKGEN) -source=internal/pkg/repository/token_repository.go \
+	           -destination=internal/mocks/mock_token_repository.go \
+	           -package=mocks
+	@echo "Mock for TokenRepository generated successfully!"
+
+## mock_user_repository: generates mocks for the UserRepository
+mock_user_repository:
+	@echo "Generating mock for UserRepository..."
+	$(MOCKGEN) -source=internal/pkg/repository/user_repository.go \
+	           -destination=internal/mocks/mock_user_repository.go \
+	           -package=mocks
+	@echo "Mock for UserRepository generated successfully!"
+
+# Add more mock generation rules as needed

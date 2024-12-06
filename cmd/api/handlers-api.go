@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -243,6 +244,7 @@ func (app *application) SaveOrder(order models.Order) (int, error) {
 
 // CreateAuthToken handle creating authenticate token
 func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) {
+	ctx := context.TODO()
 	var userInput struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -272,14 +274,8 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// generate token
-	token, err := models.GenerateToken(user.ID, 24*time.Hour, models.ScopeAuthentication)
-	if err != nil {
-		app.badRequest(w, r, err)
-		return
-	}
-
-	err = app.DB.InsertToken(token, user)
+	// Call the TokenService to create and store the token
+	token, err := app.tokenService.CreateToken(ctx, user, 24*time.Hour, models.ScopeAuthentication)
 	if err != nil {
 		app.badRequest(w, r, err)
 		return
@@ -314,6 +310,8 @@ func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *application) authenticateToken(r *http.Request) (*models.User, error) {
+	ctx := context.Background()
+
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return nil, errors.New("Missing Authorization header")
@@ -331,7 +329,8 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 	if len(tokenString) != 26 {
 		return nil, errors.New("Invalid Authorization header - wrong length")
 	}
-	user, err := app.DB.GetUserForToken(tokenString)
+
+	user, err := app.tokenService.GetUserForToken(ctx, tokenString)
 	if err != nil {
 		return nil, errors.New("Invalid Authorization header - matching token not found")
 	}
