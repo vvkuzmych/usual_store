@@ -9,6 +9,7 @@ import (
 	"time"
 	"usual_store/internal/driver"
 	"usual_store/internal/models"
+	"usual_store/internal/pkg/repository"
 	"usual_store/internal/pkg/service"
 )
 
@@ -85,7 +86,7 @@ func main() {
 	}
 
 	defer conn.Close()
-
+	repo := repository.NewDBModel(conn)
 	app := &application{
 		config:   cfg,
 		infoLog:  infoLog,
@@ -94,6 +95,7 @@ func main() {
 		DB: models.DBModel{
 			DB: conn,
 		},
+		tokenService: *service.NewTokenService(repo),
 	}
 
 	err = app.serve()
