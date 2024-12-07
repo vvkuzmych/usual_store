@@ -111,7 +111,9 @@ type Customer struct {
 func (m *DBModel) GetWidget(id int) (Widget, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	row := m.DB.QueryRowContext(ctx, `SELECT id, name, description, inventory_level, price, image, is_recurring, plan_id, created_at, updated_at FROM widgets WHERE id=?`, id)
+
+	stmt := `SELECT id, name, description, inventory_level, price, image, is_recurring, plan_id, created_at, updated_at FROM widgets WHERE id=$1`
+	row := m.DB.QueryRowContext(ctx, stmt, id)
 
 	var widget Widget
 	err := row.Scan(
@@ -132,6 +134,7 @@ func (m *DBModel) GetWidget(id int) (Widget, error) {
 		}
 		return widget, err
 	}
+
 	return widget, nil
 }
 
@@ -140,13 +143,14 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	// Insert the transaction into the database
 	stmt := `INSERT INTO transactions 
 				(amount, currency, last_four, bank_return_code, 
 				 expiry_month, expiry_year, payment_intent, payment_method, 
 				 transaction_status_id, created_at, updated_at)
-				values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-				`
-	result, err := m.DB.ExecContext(ctx, stmt,
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
+
+	_, err := m.DB.ExecContext(ctx, stmt,
 		txn.Amount,
 		txn.Currency,
 		txn.LastFour,
@@ -159,36 +163,50 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 		time.Now(),
 		time.Now(),
 	)
+
 	if err != nil {
 		return 0, err
 	}
-	id, err := result.LastInsertId()
+
+	// Retrieve the transaction ID using the paymentIntent
+	id, err := m.GetTransactionIDByPaymentIntent(ctx, txn.PaymentIntent)
 	if err != nil {
 		return 0, err
 	}
-	return int(id), nil
+
+	return id, nil
+}
+
+// GetTransactionIDByPaymentIntent retrieves the transaction ID based on the payment_intent.
+func (m *DBModel) GetTransactionIDByPaymentIntent(ctx context.Context, paymentIntent string) (int, error) {
+	stmt := `SELECT id FROM transactions WHERE payment_intent = $1;`
+
+	var id int
+	err := m.DB.QueryRowContext(ctx, stmt, paymentIntent).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }
 
 // InsertOrder insert a new order and returns new id
 func (m *DBModel) InsertOrder(order Order) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
 	// Check if widget_id exists
-	var widgetExists bool
-	err := m.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM widgets WHERE id = ?)", order.WidgetID).Scan(&widgetExists)
+	err := m.CheckWidgetExistence(ctx, order.WidgetID)
 	if err != nil {
-		return 0, fmt.Errorf("could not check widget existence: %v", err)
-	}
-	if !widgetExists {
-		return 0, fmt.Errorf("widget_id %d does not exist", order.WidgetID)
+		return 0, err
 	}
 
+	// Insert the order into the database
 	stmt := `
         INSERT INTO orders 
         (widget_id, transaction_id, status_id, quantity, customer_id, amount)
-        VALUES(?, ?, ?, ?, ?, ?)
-        `
-
+        VALUES($1, $2, $3, $4, $5, $6)
+    `
 	result, err := m.DB.ExecContext(ctx, stmt,
 		order.WidgetID,
 		order.TransactionID,
@@ -201,11 +219,26 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 		return 0, err
 	}
 
+	// Retrieve the order ID after insertion
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
+
 	return int(id), nil
+}
+
+// CheckWidgetExistence checks if a widget exists based on its ID.
+func (m *DBModel) CheckWidgetExistence(ctx context.Context, widgetID int) error {
+	var widgetExists bool
+	err := m.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM widgets WHERE id = $1)", widgetID).Scan(&widgetExists)
+	if err != nil {
+		return fmt.Errorf("could not check widget existence: %v", err)
+	}
+	if !widgetExists {
+		return fmt.Errorf("widget_id %d does not exist", widgetID)
+	}
+	return nil
 }
 
 // InsertCustomer insert a new customer and returns new id
@@ -214,11 +247,11 @@ func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Prepare the SQL statement
+	// Insert the customer into the database
 	stmt := `
 		INSERT INTO customers 
 		(first_name, last_name, email)
-		VALUES(?, ?, ?)
+		VALUES($1, $2, $3)
 	`
 
 	// Execute the SQL statement
@@ -231,14 +264,24 @@ func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
 		return 0, err
 	}
 
-	// Retrieve the last inserted ID
+	// Retrieve the customer ID after insertion
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
 
-	// Return the inserted ID
+	// Return the inserted customer ID
 	return int(id), nil
+}
+
+// CheckCustomerExistence checks if a customer exists based on their email.
+func (m *DBModel) CheckCustomerExistence(ctx context.Context, email string) (bool, error) {
+	var exists bool
+	err := m.DB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM customers WHERE email = $1)", email).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("could not check customer existence: %v", err)
+	}
+	return exists, nil
 }
 
 // GetUserByEmail gets user by email address
@@ -293,15 +336,17 @@ func (m *DBModel) Authenticate(email, password string) (int, error) {
 	return id, nil
 }
 
+// UpdatePasswordForUser it updates password for user
 func (m *DBModel) UpdatePasswordForUser(user User, hash string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	stmt := `
 	UPDATE users
-    SET password = ?
-    WHERE id = ?
-    `
+	SET password = $1
+	WHERE id = $2
+	`
+
 	_, err := m.DB.ExecContext(ctx, stmt, hash, user.ID)
 	if err != nil {
 		return err
