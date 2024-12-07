@@ -63,43 +63,38 @@ func (app *application) serve() error {
 
 func main() {
 	gob.Register(TransactionData{})
-	var cfg config
 
-	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
-	flag.StringVar(&cfg.env, "env", "development", "Application enviornment {development|production}")
-	//flag.StringVar(&cfg.db.dsn, "db-dsn", "root:admin123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "Database DSN")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:password@database:5432/usualstore?sslmode=disable", "Database DSN")
-	flag.StringVar(&cfg.api, "api", "http://localhost:4001", "URL to api")
-	flag.StringVar(&cfg.secretkey, "secret", "FrwEtHyuJVJljlkiUNuobKbYPYBknbsw", "secret key")
-	flag.StringVar(&cfg.frontend, "frontend", "http://localhost:4000", "url to frontend")
+	// Load environment variables
+	secretKeyForFront := mustGetEnv("SECRET_FOR_FRONT")
+	defaultDSN := mustGetEnv("DATABASE_DSN")
+	apiUrl := mustGetEnv("API_URL")
+	frontUrl := mustGetEnv("FRONT_URL")
 
-	flag.Parse()
+	// Parse command-line flags
+	cfg := parseFlags(secretKeyForFront, defaultDSN, apiUrl, frontUrl)
 
-	cfg.stripe.key = os.Getenv("STRIPE_KEY")
-	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
-
+	// Setup loggers
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
+	// Connect to the database
 	conn, err := driver.OpenDB(cfg.db.dsn)
 	if err != nil {
 		errorLog.Fatal(err)
 	}
-
 	defer conn.Close()
 
-	// set up session
+	// Setup session management
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
 	session.Store = NewPostgresSessionStore(conn)
 
-	tc := make(map[string]*template.Template)
-
+	// Initialize application
 	app := &application{
 		config:        cfg,
 		infoLog:       infoLog,
 		errorLog:      errorLog,
-		templateCache: tc,
+		templateCache: make(map[string]*template.Template),
 		version:       version,
 		DB: models.DBModel{
 			DB: conn,
@@ -107,11 +102,38 @@ func main() {
 		Session: session,
 	}
 
-	err = app.serve()
-	if err != nil {
+	// Start the server
+	if err := app.serve(); err != nil {
 		app.errorLog.Println(err)
 		log.Fatal(err)
 	}
+}
+
+// Helper to ensure environment variables are set
+func mustGetEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("%s is not set in .env file", key)
+	}
+	return value
+}
+
+// Parse flags and populate the configuration
+func parseFlags(secretKey, dsn, apiUrl, frontUrl string) config {
+	var cfg config
+
+	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
+	flag.StringVar(&cfg.env, "env", "development", "Application environment {development|production}")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", dsn, "Database DSN")
+	flag.StringVar(&cfg.secretkey, "secret", secretKey, "Secret key")
+	flag.StringVar(&cfg.api, "api", apiUrl, "URL to API")
+	flag.StringVar(&cfg.frontend, "frontend", frontUrl, "URL to frontend")
+	flag.Parse()
+
+	cfg.stripe.key = os.Getenv("STRIPE_KEY")
+	cfg.stripe.secret = os.Getenv("STRIPE_SECRET")
+
+	return cfg
 }
 
 // PostgresSessionStore is a custom PostgreSQL session store implementation.
