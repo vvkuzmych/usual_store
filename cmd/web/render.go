@@ -54,30 +54,32 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 }
 
 func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, page string, td *templateData, partials ...string) error {
-	var t *template.Template
-	var err error
+	// Determine the template to render
 	templateToRender := fmt.Sprintf("templates/%s.page.gohtml", page)
-	_, templateInMap := app.templateCache[templateToRender]
 
-	if templateInMap {
-		t = app.templateCache[templateToRender]
-	} else {
+	// Retrieve or parse the template
+	t, exists := app.templateCache[templateToRender]
+	if !exists {
+		var err error
 		t, err = app.parseTemplate(partials, page, templateToRender)
 		if err != nil {
-			app.errorLog.Println(err)
+			app.errorLog.Printf("Error parsing template %s: %v", templateToRender, err)
 			return err
 		}
 	}
+
+	// Add default data if templateData is nil
 	if td == nil {
 		td = &templateData{}
 	}
 	td = app.addDefaultData(td, r)
 
-	err = t.Execute(w, td)
-	if err != nil {
-		app.errorLog.Println(err)
+	// Execute the template and handle errors
+	if err := t.Execute(w, td); err != nil {
+		app.errorLog.Printf("Error executing template %s: %v", templateToRender, err)
 		return err
 	}
+
 	return nil
 }
 
