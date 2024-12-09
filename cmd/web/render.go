@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 )
 
 type templateData struct {
@@ -83,26 +82,27 @@ func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, p
 }
 
 func (app *application) parseTemplate(partials []string, page, templateToRender string) (*template.Template, error) {
-	var t *template.Template
-	var err error
+	// Prepend the path and extension to each partial
+	for i, partial := range partials {
+		partials[i] = fmt.Sprintf("templates/%s.partial.gohtml", partial)
+	}
 
-	// build partials
+	// Base templates to parse
+	baseTemplates := []string{"templates/base.layout.gohtml", templateToRender}
 	if len(partials) > 0 {
-		for i, partial := range partials {
-			partials[i] = fmt.Sprintf("templates/%s.partial.gohtml", partial)
-		}
+		baseTemplates = append(baseTemplates, partials...)
 	}
-	if len(partials) > 0 {
-		t, err = template.New(fmt.Sprintf("%s.page.gohtml", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.gohtml", strings.Join(partials, ","), templateToRender)
-	} else {
-		t, err = template.New(fmt.Sprintf("%s.page.gohtml", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.gohtml", templateToRender)
-	}
+
+	// Parse the templates
+	templateName := fmt.Sprintf("%s.page.gohtml", page)
+	t, err := template.New(templateName).Funcs(functions).ParseFS(templateFS, baseTemplates...)
 	if err != nil {
-		app.errorLog.Println(err)
+		app.errorLog.Printf("Error parsing template %s: %v", templateToRender, err)
 		return nil, err
 	}
-	app.templateCache[templateToRender] = t
 
+	// Cache the parsed template
+	app.templateCache[templateToRender] = t
 	return t, nil
 }
 
