@@ -107,12 +107,6 @@ func (app *application) parseTemplate(partials []string, page, templateToRender 
 }
 
 func (app *application) getEnvData() map[string]string {
-	//err := godotenv.Load()
-	//if err != nil {
-	//	log.Printf("Error loading .env file: %v", err)
-	//	log.Fatal("Exiting due to missing .env file")
-	//}
-
 	// Get the publishable key from the environment variable
 	publishableKey := os.Getenv("PUBLISHABLE_KEY")
 	if publishableKey == "" {
