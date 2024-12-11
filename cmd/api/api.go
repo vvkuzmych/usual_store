@@ -14,8 +14,8 @@ import (
 	"time"
 	"usual_store/internal/driver"
 	"usual_store/internal/models"
-	"usual_store/internal/pkg/repository"
-	"usual_store/internal/pkg/service"
+	"usual_store/pkg/repository"
+	"usual_store/pkg/service"
 )
 
 const version = "1.0.0"

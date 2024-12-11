@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"fmt"
+	"github.com/go-playground/validator/v10"
 	"time"
 	"usual_store/internal/models"
 )
@@ -25,9 +27,21 @@ func NewDBModel(db *sql.DB) *DBModel {
 
 // InsertToken inserts or updates a token for a user in the database.
 func (m *DBModel) InsertToken(ctx context.Context, token *models.Token, user models.User) error {
+	validate := validator.New()
+
+	// Validate the struct
+	err := validate.Struct(user)
+	if err != nil {
+		// Loop through validation errors
+		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Printf("Field '%s' failed validation, Condition: '%s'\n", err.Field(), err.ActualTag())
+		}
+		return err
+	}
+
 	// Use $1 for parameterized queries in PostgreSQL
 	stmt := `DELETE FROM tokens WHERE user_id = $1`
-	_, err := m.DB.ExecContext(ctx, stmt, user.ID)
+	_, err = m.DB.ExecContext(ctx, stmt, user.ID)
 	if err != nil {
 		return err
 	}

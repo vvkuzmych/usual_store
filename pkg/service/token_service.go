@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 	"usual_store/internal/models"
-	"usual_store/internal/pkg/repository"
+	"usual_store/pkg/repository"
 )
 
 type TokenService struct {
