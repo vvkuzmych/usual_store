@@ -31,6 +31,7 @@ func (app *application) routes() http.Handler {
 	mux.Route("/api/admin", func(r chi.Router) {
 		r.Use(app.Auth) // Apply Auth middleware to this subrouter
 		r.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
+		r.Post("/all-sales", app.AllSales)
 	})
 	return mux
 }

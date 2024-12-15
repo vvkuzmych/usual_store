@@ -28,8 +28,8 @@ func (app *application) routes() http.Handler {
 	mux.Route("/admin", func(r chi.Router) {
 		r.Use(app.Auth)
 		r.Get("/virtual-terminal", app.VirtualTerminal)
-		r.Get("/all-subscriptions", app.AllSales)
-		r.Get("/all-sales", app.AllSubscriptions)
+		r.Get("/all-subscriptions", app.AllSubscriptions)
+		r.Get("/all-sales", app.AllSales)
 	})
 	fileServer := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))

@@ -220,10 +220,17 @@ func (app *application) SaveCustomer(firstName, lastName, email string) (int, er
 		LastName:  lastName,
 		Email:     email,
 	}
-	id, err := app.DB.InsertCustomer(customer)
+
+	err := app.DB.InsertCustomer(customer)
 	if err != nil {
 		return 0, err
 	}
+
+	id, err := app.DB.GetLastInsertedCustomerID()
+	if err != nil {
+		return 0, err
+	}
+
 	return id, nil
 }
 
@@ -263,17 +270,23 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	// handle get user by email
 	user, err := app.DB.GetUserByEmail(userInput.Email)
 	if err != nil {
+		fmt.Println("error getting user by email")
+
 		app.invalidCredentials(w)
 		return
 	}
 
 	validPassword, err := app.passwordMatchers(user.Password, userInput.Password)
 	if err != nil {
+		fmt.Println("error password")
+
 		app.invalidCredentials(w)
 		return
 	}
 
 	if !validPassword {
+		fmt.Println("error - not valid password")
+
 		app.invalidCredentials(w)
 		return
 	}
@@ -299,6 +312,8 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Request) {
 	user, err := app.authenticateToken(r)
 	if err != nil {
+		fmt.Println("error authentication")
+
 		app.invalidCredentials(w)
 		return
 	}
@@ -318,24 +333,34 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
+		fmt.Println("no header", authHeader)
+
 		return nil, errors.New("Missing Authorization header")
 	}
 
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" || headerParts[1] == "" {
+		fmt.Println(" invalid header", authHeader)
+
 		return nil, errors.New("Invalid Authorization header")
 	}
 
 	tokenString := headerParts[1]
 	if tokenString == "" {
+		fmt.Println("token empty", authHeader)
+
 		return nil, errors.New("Invalid Authorization header - no token found")
 	}
 	if len(tokenString) != 26 {
+		fmt.Println("wrong length", authHeader)
+
 		return nil, errors.New("Invalid Authorization header - wrong length")
 	}
 
 	user, err := app.tokenService.GetUserForToken(ctx, tokenString)
 	if err != nil {
+		fmt.Println("token not found", authHeader)
+
 		return nil, errors.New("Invalid Authorization header - matching token not found")
 	}
 
@@ -500,4 +525,15 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	resp.Message = "password changed"
 
 	app.writeJSON(w, http.StatusCreated, resp)
+}
+
+func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
+	allSales, err := app.DB.GetAllOrders()
+	if err != nil {
+		fmt.Println("error getting all sales", err)
+
+		app.badRequest(w, r, err)
+		return
+	}
+	app.writeJSON(w, http.StatusOK, allSales)
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"strings"
 	"time"
 )
@@ -201,7 +202,7 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 	// Check if widget_id exists
 	err := m.CheckWidgetExistence(ctx, order.WidgetID)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("widget does not exist: %w", err)
 	}
 
 	// Insert the order into the database
@@ -210,7 +211,7 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
         (widget_id, transaction_id, status_id, quantity, customer_id, amount)
         VALUES($1, $2, $3, $4, $5, $6)
     `
-	result, err := m.DB.ExecContext(ctx, stmt,
+	_, err = m.DB.ExecContext(ctx, stmt,
 		order.WidgetID,
 		order.TransactionID,
 		order.StatusID,
@@ -219,16 +220,23 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 		order.Amount,
 	)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to insert order: %w", err)
 	}
 
-	// Retrieve the order ID after insertion
-	id, err := result.LastInsertId()
+	// Retrieve the latest inserted ID
+	var orderID int
+	query := `
+        SELECT id FROM orders
+        WHERE widget_id = $1 AND transaction_id = $2 AND customer_id = $3
+        ORDER BY created_at DESC
+        LIMIT 1
+    `
+	err = m.DB.QueryRowContext(ctx, query, order.WidgetID, order.TransactionID, order.CustomerID).Scan(&orderID)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to retrieve order ID: %w", err)
 	}
 
-	return int(id), nil
+	return orderID, nil
 }
 
 // CheckWidgetExistence checks if a widget exists based on its ID.
@@ -244,37 +252,52 @@ func (m *DBModel) CheckWidgetExistence(ctx context.Context, widgetID int) error 
 	return nil
 }
 
-// InsertCustomer insert a new customer and returns new id
-func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
-	// Create a context with a 3-second timeout
+// InsertCustomer inserts a customer record into the database.
+func (m *DBModel) InsertCustomer(customer Customer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	// Insert the customer into the database
-	stmt := `
-		INSERT INTO customers 
-		(first_name, last_name, email)
-		VALUES($1, $2, $3)
+	const insertQuery = `
+		INSERT INTO customers (first_name, last_name, email)
+		VALUES ($1, $2, $3)
 	`
 
-	// Execute the SQL statement
-	result, err := m.DB.ExecContext(ctx, stmt,
-		customer.FirstName,
-		customer.LastName,
-		customer.Email,
-	)
+	_, err := m.DB.ExecContext(ctx, insertQuery, customer.FirstName, customer.LastName, customer.Email)
 	if err != nil {
-		return 0, err
+		logQueryError("InsertCustomer", insertQuery, customer, err)
+		return fmt.Errorf("failed to insert customer: %w", err)
 	}
 
-	// Retrieve the customer ID after insertion
-	id, err := result.LastInsertId()
+	return nil
+}
+
+// GetLastInsertedCustomerID retrieves the last inserted customer ID.
+func (m *DBModel) GetLastInsertedCustomerID() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Query to fetch the last inserted customer ID
+	const getIDQuery = `
+		SELECT id
+		FROM customers
+		ORDER BY id DESC
+		LIMIT 1
+	`
+
+	var customerID int
+	err := m.DB.QueryRowContext(ctx, getIDQuery).Scan(&customerID)
 	if err != nil {
-		return 0, err
+		logQueryError("GetLastInsertedCustomerID", getIDQuery, nil, err)
+		return 0, fmt.Errorf("failed to get last inserted customer ID: %w", err)
 	}
 
-	// Return the inserted customer ID
-	return int(id), nil
+	return customerID, nil
+}
+
+// logQueryError logs detailed information about query execution failures.
+func logQueryError(operation, query string, params interface{}, err error) {
+	log.Printf("[%s] Query failed.\nQuery: %s\nParams: %+v\nError: %v", operation, query, params, err)
 }
 
 // CheckCustomerExistence checks if a customer exists based on their email.
@@ -364,22 +387,24 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 
 	var orders []*Order
 
-	query := `SELECT o.id,  o.widget_id, o.transaction_id, o.status_id, o.quantity, 
-       				 o.customer_id, o.amount, o.created_at, o.updated_at,
-       				 w.id, w.name, t.id, t.amount, t.currency, t.last_four,
-       				 t.expiry_month, t.expiry_year, t.payment_intent, 
-       				 t.bank_return_code, c.id, c.first_name, c.last_name, c.email, c.email 
+	query := `SELECT o.id, o.widget_id, o.transaction_id, o.customer_id, 
+					 o.status_id, o.quantity, o.amount, o.created_at,
+					 o.updated_at, w.id, w.name, t.id, t.amount, t.currency,
+					 t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
+					 t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 			  FROM orders o 
-			  left join widgets w on o.widget_id = w.id
-			  left join transactions t on o.transaction_id = t.id
-			  left join customers c on o.customer_id = c.id
+			  		left join widgets w on (o.widget_id = w.id)
+					left join transactions t on (o.transaction_id = t.id)
+					left join customers c on (o.customer_id = c.id)
 			  WHERE 
-			      w.is_recurring = 0 
+			      w.is_recurring = false
 			  ORDER BY 
 			      o.created_at desc`
 
 	rows, err := m.DB.QueryContext(ctx, query)
 	if err != nil {
+		fmt.Println("error getting data from rows: ", err)
+
 		return nil, err
 	}
 	defer rows.Close()
@@ -389,9 +414,9 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 			&order.ID,
 			&order.WidgetID,
 			&order.TransactionID,
+			&order.CustomerID,
 			&order.StatusID,
 			&order.Quantity,
-			&order.CustomerID,
 			&order.Amount,
 			&order.CreatedAt,
 			&order.UpdatedAt,
@@ -400,15 +425,19 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 			&order.Transaction.ID,
 			&order.Transaction.Amount,
 			&order.Transaction.Currency,
-			&order.Transaction.Currency,
-			&order.Transaction.ExpiryYear,
+			&order.Transaction.LastFour,
 			&order.Transaction.ExpiryMonth,
+			&order.Transaction.ExpiryYear,
+			&order.Transaction.PaymentIntent,
+			&order.Transaction.BankReturnCode,
 			&order.Customer.ID,
 			&order.Customer.FirstName,
 			&order.Customer.LastName,
 			&order.Customer.Email,
 		)
 		if err != nil {
+			fmt.Println("scanning error")
+
 			return nil, err
 		}
 		orders = append(orders, &order)

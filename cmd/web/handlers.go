@@ -231,10 +231,19 @@ func (app *application) SaveCustomer(firstName, lastName, email string) (int, er
 		LastName:  lastName,
 		Email:     email,
 	}
-	id, err := app.DB.InsertCustomer(customer)
+	err := app.DB.InsertCustomer(customer)
 	if err != nil {
+		fmt.Println("error failed to insert customer")
 		return 0, err
 	}
+
+	id, err := app.DB.GetLastInsertedCustomerID()
+	if err != nil {
+		fmt.Println("error failed to get customer")
+
+		return 0, err
+	}
+
 	return id, nil
 }
 
