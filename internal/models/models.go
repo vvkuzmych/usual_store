@@ -381,7 +381,8 @@ func (m *DBModel) UpdatePasswordForUser(user User, hash string) error {
 	return nil
 }
 
-func (m *DBModel) GetAllOrders() ([]*Order, error) {
+// GetOrders retrieves all orders from the database based on the recurring status.
+func (m *DBModel) GetOrders(isRecurring bool) ([]*Order, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -393,21 +394,21 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 					 t.last_four, t.expiry_month, t.expiry_year, t.payment_intent,
 					 t.bank_return_code, c.id, c.first_name, c.last_name, c.email
 			  FROM orders o 
-			  		left join widgets w on (o.widget_id = w.id)
-					left join transactions t on (o.transaction_id = t.id)
-					left join customers c on (o.customer_id = c.id)
+			  		LEFT JOIN widgets w ON (o.widget_id = w.id)
+					LEFT JOIN transactions t ON (o.transaction_id = t.id)
+					LEFT JOIN customers c ON (o.customer_id = c.id)
 			  WHERE 
-			      w.is_recurring = false
+			      w.is_recurring = $1
 			  ORDER BY 
-			      o.created_at desc`
+			      o.created_at DESC`
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	rows, err := m.DB.QueryContext(ctx, query, isRecurring)
 	if err != nil {
-		fmt.Println("error getting data from rows: ", err)
-
+		fmt.Println("error getting data from rows:", err)
 		return nil, err
 	}
 	defer rows.Close()
+
 	for rows.Next() {
 		var order Order
 		err = rows.Scan(
@@ -436,12 +437,21 @@ func (m *DBModel) GetAllOrders() ([]*Order, error) {
 			&order.Customer.Email,
 		)
 		if err != nil {
-			fmt.Println("scanning error")
-
+			fmt.Println("scanning error:", err)
 			return nil, err
 		}
 		orders = append(orders, &order)
-
 	}
+
 	return orders, nil
+}
+
+// GetAllOrders gets all non-recurring orders from the database.
+func (m *DBModel) GetAllOrders() ([]*Order, error) {
+	return m.GetOrders(false)
+}
+
+// GetAllSubscriptions gets all recurring orders from the database.
+func (m *DBModel) GetAllSubscriptions() ([]*Order, error) {
+	return m.GetOrders(true)
 }
