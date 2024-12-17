@@ -31,7 +31,7 @@ func (app *application) routes() http.Handler {
 		r.Get("/all-subscriptions", app.AllSubscriptions)
 		r.Get("/all-sales", app.AllSales)
 		r.Get("/sales/{id}", app.ShowSale)
-		//r.Get("/subscriptions/{id}", app.ShowSubscription)
+		r.Get("/subscriptions/{id}", app.ShowSale)
 	})
 	fileServer := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))
