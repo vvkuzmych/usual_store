@@ -7,6 +7,7 @@ require (
 	github.com/bwmarrin/go-alone v0.0.0-20190806015146-742bb55d1631
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
+	github.com/go-playground/validator/v10 v10.23.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang/mock v1.6.0
 	github.com/lib/pq v1.10.9
@@ -20,18 +21,8 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.23.0 // indirect
 	github.com/go-test/deep v1.1.1 // indirect
-	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.14.3 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgtype v1.14.0 // indirect
-	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.23.0 // indirect

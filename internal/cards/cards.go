@@ -5,6 +5,7 @@ import (
 	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/paymentintent"
 	"github.com/stripe/stripe-go/v72/paymentmethod"
+	"github.com/stripe/stripe-go/v72/refund"
 	"github.com/stripe/stripe-go/v72/sub"
 )
 
@@ -66,15 +67,6 @@ func (c *Card) RetrievePaymentIntent(s string) (*stripe.PaymentIntent, error) {
 }
 
 // SubscribeToPlan subscribes a Stripe customer to a specified plan.
-// Params:
-// - customer: the Stripe customer object that will be subscribed to the plan.
-// - plan: the ID of the Stripe subscription plan.
-// - email: the email associated with the customer (not used in the function, but could be useful for logging or future functionality).
-// - last4: the last four digits of the card being used.
-// - cardType: the type of card being used (e.g., Visa, MasterCard).
-// Returns:
-// - string: the subscription ID if successful.
-// - error: an error message if the subscription creation fails.
 func (c *Card) SubscribeToPlan(customer *stripe.Customer, plan, email, last4, cardType string) (*stripe.Subscription, error) {
 	stripeCustomerID := customer.ID
 	items := []*stripe.SubscriptionItemsParams{
@@ -95,13 +87,6 @@ func (c *Card) SubscribeToPlan(customer *stripe.Customer, plan, email, last4, ca
 }
 
 // CreateCustomer creates a new Stripe customer with a default payment method and email.
-// Params:
-// - pm: the payment method (typically a PaymentMethod ID) to be set as default for the customer.
-// - email: the customer's email address.
-// Returns:
-// - *stripe.Customer: the created customer object if successful.
-// - string: an error message (if there is one) based on the specific Stripe error code.
-// - error: the error object if customer creation fails.
 func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error) {
 	stripe.Key = c.Secret
 	customerParams := &stripe.CustomerParams{
@@ -122,11 +107,23 @@ func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error
 	return customer, "", nil
 }
 
+// Refund processes a refund for a given payment intent.
+func (c *Card) Refund(pi string, amount int) error {
+	stripe.Key = c.Secret
+	amountToRefund := int64(amount)
+	refundParams := &stripe.RefundParams{
+		Amount:        &amountToRefund,
+		PaymentIntent: &pi,
+	}
+
+	_, err := refund.New(refundParams)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // cardErrorMessage maps specific Stripe error codes related to card issues to user-friendly messages.
-// Params:
-// - code: the error code from Stripe.
-// Returns:
-// - string: a user-friendly error message explaining the issue with the card.
 func cardErrorMessage(code stripe.ErrorCode) string {
 	var msg = ""
 	switch code {
