@@ -30,6 +30,8 @@ func (app *application) routes() http.Handler {
 		r.Get("/virtual-terminal", app.VirtualTerminal)
 		r.Get("/all-subscriptions", app.AllSubscriptions)
 		r.Get("/all-sales", app.AllSales)
+		r.Get("/sales/{id}", app.ShowSale)
+		//r.Get("/subscriptions/{id}", app.ShowSubscription)
 	})
 	fileServer := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))
