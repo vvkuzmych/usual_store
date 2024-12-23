@@ -88,6 +88,12 @@ func (c *Card) SubscribeToPlan(customer *stripe.Customer, plan, email, last4, ca
 
 // CreateCustomer creates a new Stripe customer with a default payment method and email.
 func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error) {
+	err := validateEmail(email)
+	if err != nil {
+		msg := ""
+		return nil, msg, err
+	}
+
 	stripe.Key = c.Secret
 	customerParams := &stripe.CustomerParams{
 		Email:         stripe.String(email),
