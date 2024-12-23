@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"fmt"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/paymentintent"
@@ -132,13 +133,17 @@ func (c *Card) Refund(pi string, amount int) error {
 // CancelSubscription process of canceling subscription
 func (c *Card) CancelSubscription(subID string) error {
 	stripe.Key = c.Secret
+	fmt.Println("sub ID -------", subID)
 	params := &stripe.SubscriptionParams{
 		CancelAtPeriodEnd: stripe.Bool(true),
 	}
+
 	_, err := sub.Update(subID, params)
 	if err != nil {
+		fmt.Println("cannot update")
 		return err
 	}
+	fmt.Println("subscription cancelled")
 	return nil
 }
 
