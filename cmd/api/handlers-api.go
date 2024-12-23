@@ -613,3 +613,46 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 	resp.Message = "refunded successfully"
 	app.writeJSON(w, http.StatusOK, resp)
 }
+
+func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	var subscriptionToCancel struct {
+		ID            int    `json:"id"`
+		PaymentIntent string `json:"pi"`
+		Currency      string `json:"currency"`
+	}
+
+	err := app.readJSON(w, r, &subscriptionToCancel)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: subscriptionToCancel.Currency,
+	}
+
+	err = card.CancelSubscription(subscriptionToCancel.PaymentIntent)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	//update status in DB
+	err = app.DB.UpdateOrderStatus(subscriptionToCancel.ID, 3)
+	if err != nil {
+		app.badRequest(w, r, errors.New("subscription was canceled, but error happens while updating order in DB"))
+		return
+	}
+
+	// response message with error
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+	resp.Message = "successfully cancelled subscription"
+	app.writeJSON(w, http.StatusOK, resp)
+}
