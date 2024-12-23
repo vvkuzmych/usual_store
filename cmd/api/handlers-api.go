@@ -165,6 +165,8 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 			ExpiryMonth:         expiryMonth,
 			ExpiryYear:          expiryYear,
 			TransactionStatusID: 2,
+			PaymentIntent:       subscription.ID,
+			PaymentMethod:       data.PaymentMethod,
 		}
 		txnID, err := app.SaveTransaction(txn)
 		if err != nil {
