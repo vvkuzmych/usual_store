@@ -133,7 +133,6 @@ func (c *Card) Refund(pi string, amount int) error {
 // CancelSubscription process of canceling subscription
 func (c *Card) CancelSubscription(subID string) error {
 	stripe.Key = c.Secret
-	fmt.Println("sub ID -------", subID)
 	params := &stripe.SubscriptionParams{
 		CancelAtPeriodEnd: stripe.Bool(true),
 	}

@@ -10,7 +10,7 @@ services:
       - STRIPE_SECRET=${STRIPE_SECRET}
       - STRIPE_KEY=${STRIPE_KEY}
       - USUAL_STORE_PORT=${USUAL_STORE_PORT}
-      - DATABASE_URL=postgres://postgres:password@database:5432/usualstore
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - "${USUAL_STORE_PORT}:${USUAL_STORE_PORT}"
     env_file:
@@ -27,7 +27,7 @@ services:
       - STRIPE_SECRET=${STRIPE_SECRET}
       - STRIPE_KEY=${STRIPE_KEY}
       - API_PORT=${API_PORT}
-      - DATABASE_URL=postgres://postgres:password@database:5432/usualstore
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - "${API_PORT}:${API_PORT}"
     env_file:
