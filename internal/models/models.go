@@ -381,10 +381,12 @@ func (m *DBModel) UpdatePasswordForUser(user User, hash string) error {
 	return nil
 }
 
-// GetOrders retrieves all orders from the database based on the recurring status.
-func (m *DBModel) GetOrders(isRecurring bool) ([]*Order, error) {
+// GetOrders retrieves subset orders from the database.
+func (m *DBModel) GetOrdersPaginated(isRecurring bool, pageSize, page int) ([]*Order, int, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	offset := (page - 1) * pageSize
 
 	var orders []*Order
 
@@ -400,12 +402,13 @@ func (m *DBModel) GetOrders(isRecurring bool) ([]*Order, error) {
 			  WHERE 
 			      w.is_recurring = $1
 			  ORDER BY 
-			      o.created_at DESC`
+			      o.created_at DESC
+			  LIMIT $2 OFFSET $3`
 
-	rows, err := m.DB.QueryContext(ctx, query, isRecurring)
+	rows, err := m.DB.QueryContext(ctx, query, isRecurring, pageSize, offset)
 	if err != nil {
 		fmt.Println("error getting data from rows:", err)
-		return nil, err
+		return nil, 0, 0, err
 	}
 	defer rows.Close()
 
@@ -438,22 +441,35 @@ func (m *DBModel) GetOrders(isRecurring bool) ([]*Order, error) {
 		)
 		if err != nil {
 			fmt.Println("scanning error:", err)
-			return nil, err
+			return nil, 0, 0, err
 		}
 		orders = append(orders, &order)
 	}
 
-	return orders, nil
+	query = `SELECT COUNT(o.id) FROM orders o 
+			 LEFT JOIN widgets w ON (o.widget_id = w.id)
+			 WHERE w.is_recurring = $1`
+
+	var totalRecords int
+	countRow := m.DB.QueryRowContext(ctx, query, isRecurring)
+
+	err = countRow.Scan(&totalRecords)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	lastPage := totalRecords / pageSize
+
+	return orders, lastPage, totalRecords, nil
 }
 
 // GetAllOrders gets all non-recurring orders from the database.
-func (m *DBModel) GetAllOrders() ([]*Order, error) {
-	return m.GetOrders(false)
+func (m *DBModel) GetAllOrders(pageSize, page int) ([]*Order, int, int, error) {
+	return m.GetOrdersPaginated(false, pageSize, page)
 }
 
 // GetAllSubscriptions gets all recurring orders from the database.
-func (m *DBModel) GetAllSubscriptions() ([]*Order, error) {
-	return m.GetOrders(true)
+func (m *DBModel) GetAllSubscriptions(pageSize, page int) ([]*Order, int, int, error) {
+	return m.GetOrdersPaginated(true, pageSize, page)
 }
 
 func (m *DBModel) GetOrderByID(id int) (Order, error) {
