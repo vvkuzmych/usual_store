@@ -30,7 +30,32 @@
 {{define "js"}}
 
 <script>
-	let tboby = document.getElementById("user-table").getElementsByTagName("tbody")[0];
+    document.addEventListener("DOMContentLoaded", function () {
+        let tboby = document.getElementById("user-table").getElementsByTagName("tbody")[0];
+        let token = localStorage.getItem("token");
+        const requestOptions = {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            },
+        }
+
+        fetch("{{.API}}/api/admin/all-users", requestOptions)
+            .then((response) => response.json())
+            .then((data) => {
+                // Clear existing table rows before adding new data
+                // while (tbody.firstChild) {
+                //     tbody.removeChild(tbody.firstChild);
+                // }
+		            console.log(data)
+            })
+            .catch((error) => {
+                console.error("Error fetching sales data:", error);
+            });
+
+    })
 </script>
 
 {{end}}
