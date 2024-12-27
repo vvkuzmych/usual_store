@@ -47,14 +47,10 @@
 
 		      let pageBtns = document.getElementsByClassName("pager");
           for (var j = 0; j < pageBtns.length; j++) {
-              pageBtns[j].addEventListener("click", function (evt) {
-                  let desiredPage = evt.target.getAttribute("data-page");
+              pageBtns[j].addEventListener("click", function (event) {
+                  let desiredPage = event.target.getAttribute("data-page");
                   console.log("desiredPage ", desiredPage)
                   if ((desiredPage > 0) && (desiredPage <= pages + 1 )) {
-                      console.log("pageSize ", pageSize)
-                      console.log("desiredPage ", desiredPage + 1)
-                      console.log("pageSize ", pageSize)
-                      console.log("page ", pages)
                       updateTable(pageSize, desiredPage);
                   }
               })
@@ -86,6 +82,7 @@
                   while (tbody.firstChild) {
                       tbody.removeChild(tbody.firstChild);
                   }
+
                   if (data.orders) {
                       data.orders.forEach((i) => {
                           // Create a new row in the table body

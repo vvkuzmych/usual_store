@@ -1,89 +1,142 @@
 {{template "base" .}}
 
 {{define "title"}}
-    All Subscriptions
+	All Subscriptions
 {{end}}
 
 {{define "content"}}
-    <h2 class="mt-5">All Subscriptions</h2>
-    <hr>
+	<h2 class="mt-5">All Subscriptions</h2>
+	<hr>
 
-    <table id="subscriptions-table" class="table table-striped">
-        <thead>
-        <tr>
-            <th>Transaction</th>
-            <th>Customer</th>
-            <th>Product</th>
-            <th>Amount</th>
-            <th>Status</th>
-        </tr>
-        </thead>
-        <tbody>
+	<table id="subscriptions-table" class="table table-striped">
+		<thead>
+		<tr>
+			<th>Transaction</th>
+			<th>Customer</th>
+			<th>Product</th>
+			<th>Amount</th>
+			<th>Status</th>
+		</tr>
+		</thead>
+		<tbody>
 
-        </tbody>
+		</tbody>
 
-    </table>
+	</table>
+
+	<nav aria-label="Page navigation">
+		<ul id="paginator" class="pagination">
+		</ul>
+	</nav>
 {{end}}
 
 {{define "js"}}
-    <script>
-        let token = localStorage.getItem("token")
-        let tbody = document.getElementById("subscriptions-table").getElementsByTagName("tbody")[0]
+	<script>
+      let currentPage = 1;
+      let pageSize = 2;
 
-        const requestOptions = {
-            method: 'post',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token,
-            },
-        }
+      function paginator(pages, curPage) {
+          let p = document.getElementById("paginator");
+          let html = `<li class="page-item"><a class="page-link pager" data-page="${curPage - 1}" href="#!">&lt;</a></li>`
 
-        fetch("{{.API}}/api/admin/all-subscriptions", requestOptions)
-                .then(response => response.json())
-                .then(function (data) {
-                    if (data) {
-                        data.forEach(function (i) {
-                            let newRow = tbody.insertRow();
-                            let newCell = newRow.insertCell();
+          for (var i = 0; i <= pages; i++) {
+              html += `<li class="page-item"><a class="page-link pager" data-page="${i + 1}" href="#!">${i + 1}</a></li>`
+          }
+          html += `<li class="page-item"><a class="page-link pager" data-page="${curPage + 1}" href="#!">&gt;</a></li>`
+          p.innerHTML = html
 
-                            newCell.innerHTML = `<a href="/admin/subscriptions/${i.id}">Order ${i.id}</a>`
+          let pageBtns = document.getElementsByClassName("pager");
+          for (var j = 0; j < pageBtns.length; j++) {
+              pageBtns[j].addEventListener("click", function (event) {
+                  let desiredPage = event.target.getAttribute("data-page");
+                  console.log("desiredPage ", desiredPage)
+                  if ((desiredPage > 0) && (desiredPage <= pages + 1)) {
+                      updateTable(pageSize, desiredPage);
+                  }
+              })
+          }
+      }
 
-                            newCell = newRow.insertCell();
-                            let item = document.createTextNode(i.customer.last_name + ", " + i.customer.first_name);
-                            newCell.appendChild(item);
+      function updateTable(ps, cp) {
+          let token = localStorage.getItem("token")
+          let tbody = document.getElementById("subscriptions-table").getElementsByTagName("tbody")[0]
 
-                            newCell = newRow.insertCell();
-                            item = document.createTextNode(i.widget.name);
-                            newCell.appendChild(item);
+          let body = {
+              page_size: parseInt(ps, 10),
+              current_page: parseInt(cp, 10),
+          }
 
-                            let currency = formatCurrency(i.transaction.amount)
-                            newCell = newRow.insertCell();
-                            item = document.createTextNode(currency + "/month")
-                            newCell.appendChild(item)
+          const requestOptions = {
+              method: 'post',
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + token,
+              },
+		          body: JSON.stringify(body),
+          }
 
-                            newCell = newRow.insertCell();
-                            if (i.status_id !== 1) {
-                                newCell.innerHTML = `<span class="badge bg-danger">Cancelled</span>`
-                            } else {
-                                newCell.innerHTML = `<span class="badge bg-success">Charged</span>`
-                            }
-                        })
-                    } else {
-                        let newRow = tbody.insertRow();
-                        let newCell = newRow.insertCell();
-                        newCell.setAttribute("colspan", "4");
-                        newCell.innerHTML = "No data available!";
-                    }
-                })
+          fetch("{{.API}}/api/admin/all-subscriptions", requestOptions)
+              .then(response => response.json())
+              .then(function (data) {
+                  // Clear existing table rows before adding new data
+                  while (tbody.firstChild) {
+                      tbody.removeChild(tbody.firstChild);
+                  }
 
-        function formatCurrency(amount) {
-            let currency = parseFloat(amount/100);
-            return currency.toLocaleString("en-US", {
-                style: "currency",
-                currency: "USD",
-            });
-        }
+                  if (data.subscriptions) {
+                      data.subscriptions.forEach(function (i) {
+                          let newRow = tbody.insertRow();
+                          let newCell = newRow.insertCell();
 
-    </script>
+                          newCell.innerHTML = `<a href="/admin/subscriptions/${i.id}">Order ${i.id}</a>`
+
+                          newCell = newRow.insertCell();
+                          let item = document.createTextNode(i.customer.last_name + ", " + i.customer.first_name);
+                          newCell.appendChild(item);
+
+                          newCell = newRow.insertCell();
+                          item = document.createTextNode(i.widget.name);
+                          newCell.appendChild(item);
+
+                          let currency = formatCurrency(i.transaction.amount)
+                          newCell = newRow.insertCell();
+                          item = document.createTextNode(currency + "/month")
+                          newCell.appendChild(item)
+
+                          newCell = newRow.insertCell();
+                          if (i.status_id !== 1) {
+                              newCell.innerHTML = `<span class="badge bg-danger">Cancelled</span>`
+                          } else {
+                              newCell.innerHTML = `<span class="badge bg-success">Charged</span>`
+                          }
+                      })
+
+                      // Call the paginator function
+                      paginator(data.last_page, data.current_page);
+                  } else {
+                      let newRow = tbody.insertRow();
+                      let newCell = newRow.insertCell();
+                      newCell.setAttribute("colspan", "5");
+                      newCell.innerHTML = "No data available!";
+                  }
+              })
+              .catch((error) => {
+                  console.error("Error fetching subscriptions data:", error);
+              });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+          updateTable(pageSize, currentPage);
+      })
+
+      function formatCurrency(amount) {
+          let currency = parseFloat(amount / 100);
+          return currency.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+          });
+      }
+
+	</script>
 {{end}}
