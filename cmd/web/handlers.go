@@ -396,6 +396,22 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// AllUsers show all users
+func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "all-users", &templateData{}); err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// ShowUser show one user
+func (app *application) ShowUser(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "show-user", &templateData{}); err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
 // ShowSale show one sale
 func (app *application) ShowSale(w http.ResponseWriter, r *http.Request) {
 	stringMap := make(map[string]string)
