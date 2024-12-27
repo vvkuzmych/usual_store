@@ -472,6 +472,7 @@ func (m *DBModel) GetAllSubscriptions(pageSize, page int) ([]*Order, int, int, e
 	return m.GetOrdersPaginated(true, pageSize, page)
 }
 
+// GetOrderByID gets order by id
 func (m *DBModel) GetOrderByID(id int) (Order, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -524,6 +525,7 @@ func (m *DBModel) GetOrderByID(id int) (Order, error) {
 	return order, nil
 }
 
+// UpdateOrderStatus updates order status
 func (m *DBModel) UpdateOrderStatus(id, statusID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -533,5 +535,104 @@ func (m *DBModel) UpdateOrderStatus(id, statusID int) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// GetAllUsers gets all users
+func (m *DBModel) GetAllUsers() ([]*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var users []*User
+	query := `SELECT id, first_name, last_name, email, created_at, updated_at FROM users ORDER BY last_name, first_name DESC`
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user User
+		err = rows.Scan(
+			&user.ID,
+			&user.FirstName,
+			&user.LastName,
+			&user.Email,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
+
+// GetUserByID gets user by id
+func (m *DBModel) GetUserByID(id int) (User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user User
+
+	query := `SELECT id, first_name, last_name, email, created_at FROM users WHERE id = $1`
+	row := m.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
+// EditUser update user data
+func (m *DBModel) EditUser(user User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `UPDATE users SET first_name = $1, last_name = $2, email = $3, updated_at = $4 WHERE id = $5`
+	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, time.Now(), user.ID)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddUser add user
+func (m *DBModel) AddUser(user User, hash string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `INSERT INTO users (first_name, last_name, email, password, created_at, updated_at)
+			 VALUES ($1, $2, $3, $4, $5, $6)`
+
+	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, hash, user.CreatedAt, time.Now(), time.Now())
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteUser remove user
+func (m *DBModel) DeleteUser(id int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `DELETE FROM users WHERE id = $1`
+	_, err := m.DB.ExecContext(ctx, stmt, id)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
