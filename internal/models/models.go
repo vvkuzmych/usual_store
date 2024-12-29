@@ -577,15 +577,15 @@ func (m *DBModel) GetUserByID(id int) (User, error) {
 	defer cancel()
 	var user User
 
-	query := `SELECT id, first_name, last_name, email, created_at FROM users WHERE id = $1`
+	query := `SELECT id, first_name, last_name, email, password, created_at FROM users WHERE id = $1`
 	row := m.DB.QueryRowContext(ctx, query, id)
 	err := row.Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
+		&user.Password,
 		&user.CreatedAt,
-		&user.UpdatedAt,
 	)
 	if err != nil {
 		return user, err
