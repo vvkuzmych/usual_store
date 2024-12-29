@@ -615,7 +615,7 @@ func (m *DBModel) AddUser(user User, hash string) error {
 	stmt := `INSERT INTO users (first_name, last_name, email, password, created_at, updated_at)
 			 VALUES ($1, $2, $3, $4, $5, $6)`
 
-	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, hash, user.CreatedAt, time.Now(), time.Now())
+	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, hash, time.Now(), time.Now())
 
 	if err != nil {
 		return err
