@@ -41,6 +41,7 @@ func (app *application) routes() http.Handler {
 		r.Post("/all-users/{id}", app.ShowUser)
 		r.Post("/all-users/{id}", app.ShowUser)
 		r.Post("/all-users/edit/{id}", app.EditUser)
+		r.Post("/all-users/delete/{id}", app.DeleteUser)
 	})
 	return mux
 }
