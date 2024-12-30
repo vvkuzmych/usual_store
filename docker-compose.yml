@@ -18,6 +18,18 @@ services:
     depends_on:
       - back-end
 
+  invoice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ./invoice -port=${INVOICE_PORT}
+    ports:
+      - "${INVOICE_PORT}:${INVOICE_PORT}"
+    environment:
+      - INVOICE_PORT=${INVOICE_PORT}
+    env_file:
+      - .env
+
   back-end:
     build:
       context: .

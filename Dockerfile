@@ -24,6 +24,9 @@ COPY . .
 # Build the front-end binary
 RUN make build_front
 
+# Build the invoice binary
+RUN make build_invoice
+
 # Build the back-end binary
 RUN make build_back
 
@@ -37,6 +40,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 WORKDIR /app
 
 # Copy the built binaries from the builder stage
+COPY --from=builder /app/dist/invoice ./invoice
 COPY --from=builder /app/dist/usualstore ./usualstore
 COPY --from=builder /app/dist/usualstore_api ./usualstore_api
 
@@ -44,4 +48,4 @@ COPY --from=builder /app/dist/usualstore_api ./usualstore_api
 EXPOSE 8080 8081
 
 # Start both front-end and back-end services
-CMD ["sh", "-c", "./usualstore -port=${USUAL_STORE_PORT} & ./usualstore_api -port=${API_PORT}"]
+CMD ["sh", "-c", "./usualstore -port=${USUAL_STORE_PORT} & ./usualstore_api -port=${API_PORT} & ./invoice -port=${INVOICE_PORT}"]
