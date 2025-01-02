@@ -52,7 +52,7 @@ start_front: build_front
 	@env STRIPE_KEY=${STRIPE_KEY} STRIPE_SECRET=${STRIPE_SECRET} ./dist/usualstore -port=${USUAL_STORE_PORT} &
 	@echo "Front end running!"
 
-## start_front: starts invoice microservice
+## start_invoice: starts invoice microservice
 start_invoice: build_invoice
 	@echo "Starting the invoice.."
 	@./dist/invoice &

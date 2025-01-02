@@ -15,6 +15,9 @@ COPY go.mod go.sum ./
 
 COPY .env .env
 
+# Copy the pdf-templates directory to the container
+COPY ./pdf-templates /app/pdf-templates
+
 # Download dependencies
 RUN go mod download
 
@@ -43,6 +46,9 @@ WORKDIR /app
 COPY --from=builder /app/dist/invoice ./invoice
 COPY --from=builder /app/dist/usualstore ./usualstore
 COPY --from=builder /app/dist/usualstore_api ./usualstore_api
+
+# Copy the pdf-templates directory from the builder stage
+COPY --from=builder /app/pdf-templates /app/pdf-templates
 
 # Expose ports for the front-end and back-end services
 EXPOSE 8080 8081

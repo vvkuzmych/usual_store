@@ -38,7 +38,7 @@
 {{end}}
 
 {{define "js"}}
-    <script>
+    <script nonce="{{.Nonce}}">
     let loginMessages = document.getElementById("login-messages")
         function showError(msg) {
             loginMessages.classList.add("alert-danger")

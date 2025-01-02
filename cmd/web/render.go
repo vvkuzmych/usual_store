@@ -24,6 +24,7 @@ type templateData struct {
 	CSSVersion           string
 	StripeSecretKey      string
 	StripePublishableKey string
+	Nonce 				 string
 }
 
 var functions = template.FuncMap{

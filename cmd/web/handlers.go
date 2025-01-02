@@ -1,14 +1,17 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 	"usual_store/internal/cards"
 	"usual_store/internal/encryption"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +296,11 @@ func (app *application) GoldenPlanReceipt(w http.ResponseWriter, r *http.Request
 
 // LoginPage displays login page
 func (app *application) LoginPage(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, r, "login", &templateData{}); err != nil {
+	nonce := generateNonce()
+
+	if err := app.renderTemplate(w, r, "login", &templateData{
+		Nonce: nonce,
+	}); err != nil {
 		app.errorLog.Println(err)
 		return
 	}
@@ -446,4 +453,18 @@ func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request)
 		app.errorLog.Println(err)
 		return
 	}
+}
+
+// Function to generate a nonce
+func generateNonce() string {
+    // Generate 16 random bytes
+    nonce := make([]byte, 16)
+    _, err := rand.Read(nonce)
+    if err != nil {
+        fmt.Println("Error generating nonce:", err)
+        return ""
+    }
+
+    // Return the base64 encoded nonce
+    return base64.StdEncoding.EncodeToString(nonce)
 }

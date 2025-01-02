@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.9 (Debian 15.9-1.pgdg120+1)
--- Dumped by pg_dump version 15.9 (Homebrew)
+-- Dumped from database version 14.10 (Homebrew)
+-- Dumped by pg_dump version 14.10 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -160,6 +160,46 @@ ALTER SEQUENCE public.statuses_id_seq OWNED BY public.statuses.id;
 
 
 --
+-- Name: tokens; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.tokens (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    name character varying(255) NOT NULL,
+    email character varying(255) NOT NULL,
+    token_hash bytea NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    expiry timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.tokens OWNER TO postgres;
+
+--
+-- Name: tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.tokens_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.tokens_id_seq OWNER TO postgres;
+
+--
+-- Name: tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.tokens_id_seq OWNED BY public.tokens.id;
+
+
+--
 -- Name: transaction_statuses; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -209,7 +249,9 @@ CREATE TABLE public.transactions (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     expiry_month integer DEFAULT 0 NOT NULL,
-    expiry_year integer DEFAULT 0 NOT NULL
+    expiry_year integer DEFAULT 0 NOT NULL,
+    payment_intent character varying(255) DEFAULT ''::character varying NOT NULL,
+    payment_method character varying(255) DEFAULT ''::character varying NOT NULL
 );
 
 
@@ -340,6 +382,13 @@ ALTER TABLE ONLY public.statuses ALTER COLUMN id SET DEFAULT nextval('public.sta
 
 
 --
+-- Name: tokens id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tokens ALTER COLUMN id SET DEFAULT nextval('public.tokens_id_seq'::regclass);
+
+
+--
 -- Name: transaction_statuses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -413,6 +462,30 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.statuses
     ADD CONSTRAINT statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tokens tokens_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tokens
+    ADD CONSTRAINT tokens_email_key UNIQUE (email);
+
+
+--
+-- Name: tokens tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tokens
+    ADD CONSTRAINT tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tokens tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tokens
+    ADD CONSTRAINT tokens_token_hash_key UNIQUE (token_hash);
 
 
 --
