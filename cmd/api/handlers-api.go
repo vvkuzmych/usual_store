@@ -14,6 +14,7 @@ import (
 	"usual_store/internal/encryption"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
+	"usual_store/internal/validator"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v72"
@@ -136,6 +137,14 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		return
 	}
 	app.infoLog.Println(data.LastFour, data.Email, data.PaymentMethod, data.Plan)
+
+	v := validator.New()
+	v.Check(len(data.FirstName) > 2, "first_name", "must be at least 3 characters")
+	v.Check(len(data.LastName) > 2, "last_name", "must be at least 3 characters")
+	if !v.Valid() {
+		app.failedValidation(w, r, v.Errors)
+		return
+	}
 
 	card := mappingPayloadToCard(app, data)
 

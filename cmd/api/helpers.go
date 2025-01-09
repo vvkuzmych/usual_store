@@ -87,3 +87,16 @@ func (app *application) passwordMatchers(hash, passhword string) (bool, error) {
 	}
 	return true, nil
 }
+
+func (app *application) failedValidation(w http.ResponseWriter, r *http.Request, errors  map[string]string) {
+	var payload struct {
+		Error bool `json:"error"`
+		Message string `json:"message"`
+		Errors map[string]string `json:"errors"`
+	}
+
+	payload.Error = true
+	payload.Message =  "validation failed"
+	payload.Errors = errors
+	app.writeJSON(w, http.StatusUnprocessableEntity, payload)
+}
