@@ -1,13 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/stripe/stripe-go/v72"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +14,10 @@ import (
 	"usual_store/internal/encryption"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stripe/stripe-go/v72"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const contentType = "Content-Type"
@@ -41,6 +43,19 @@ type jsonResponse struct {
 	Message string `json:"message,omitempty"`
 	Content string `json:"content,omitempty"`
 	ID      int    `json:"id,omitempty"`
+}
+
+// Invoice describes payload that sends to microservice
+type Invoice struct  {
+	ID 			int 		`json:"id"`
+	WidgetID  	int 		`json:"widget_id"`
+	Amount     	int 		`json:"amount"`
+	Quantity   	int 		`json:"quantity"`
+	Product    	string 		`json:"product"`
+	FirstName 	string 		`json:"first_name"`
+	LastName 	string 		`json:"last_name"`
+	Email  		string 		`json:"email"`
+	CreatedAt   time.Time 	`json:"created_at"`
 }
 
 // GetPaymentIntent get payment intent
@@ -186,11 +201,26 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		}
 
 		_, err = app.SaveOrder(order)
-
 		if err != nil {
 			app.errorLog.Println(err)
 			return
 		}
+
+		invoice := Invoice{
+			ID: order.ID,
+			Amount: 3000,
+			Product: "Subscription",
+			Quantity: order.Quantity,
+			FirstName: data.FirstName,
+			LastName: data.LastName,
+			Email:  data.Email,
+			CreatedAt: time.Now(),
+		}
+		err = app.callInvoiceMicroservice(invoice)
+		if err != nil {
+			app.errorLog.Println(err)
+		}
+		
 	}
 
 	response := jsonResponse{
@@ -204,6 +234,27 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 	}
 	w.Header().Set(contentType, "application/json")
 	w.Write(out)
+}
+
+// callInvoiceMicroservice calls invoice microservice that create invoice
+func (app *application) callInvoiceMicroservice(invoice Invoice) error {
+	url := "http://localhost:5000/invoice/create-and-send"
+	out, err := json.MarshalIndent(invoice, "", "\t")
+	if err != nil  {
+		return err
+	}
+
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	request.Header.Set("Content-Type", "application/json")
+
+	client :=  &http.Client{}
+	resp, err := client.Do(request)
+	if err != nil  {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 func mappingPayloadToCard(app *application, data stripePayload) cards.Card {
