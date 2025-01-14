@@ -16,7 +16,7 @@ func OpenDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Ping the database to ensure the connection is established with
+	// Ping the database to ensure the connection is established
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
