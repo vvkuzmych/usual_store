@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -44,17 +43,16 @@ func (app *application) wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	app.infoLog.Println(fmt.Sprintf("New connection from %s", r.RemoteAddr))
-	var response WsJsonResponse
-	response.Message = "connected to server"
 
-	err = ws.WriteJSON(response)
-	if err != nil {
-		app.errorLog.Println(err)
+	conn := WebSocketConnection{Conn: ws}
+	if _, exists := clients[conn]; exists {
+		app.infoLog.Println("Closing duplicate WebSocket connection")
+		_ = ws.Close()
 		return
 	}
-	conn := WebSocketConnection{Conn: ws}
+
 	clients[conn] = ""
+	app.infoLog.Printf("New connection from %s", r.RemoteAddr)
 
 	go app.ListenForWS(&conn)
 }
@@ -62,21 +60,26 @@ func (app *application) wsHandler(w http.ResponseWriter, r *http.Request) {
 func (app *application) ListenForWS(conn *WebSocketConnection) {
 	defer func() {
 		if r := recover(); r != nil {
-			app.errorLog.Println("Error: ", fmt.Sprintf("%v", r))
+			app.errorLog.Println("Recovered from panic:", r)
 		}
+		_ = conn.Close()       // Ensure the connection is closed
+		delete(clients, *conn) // Remove the client from the clients map
 	}()
 
 	var payload WsPayload
-
 	for {
 		err := conn.ReadJSON(&payload)
 		if err != nil {
-			//app.errorLog.Println(err)
-
-		} else {
-			payload.Conn = *conn
-			wsChannel <- payload
+			// Handle the "close" error more gracefully
+			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+				app.infoLog.Println("WebSocket connection closed:", err)
+			} else {
+				app.errorLog.Println("Error reading from WebSocket:", err)
+			}
+			break
 		}
+		payload.Conn = *conn
+		wsChannel <- payload
 	}
 }
 

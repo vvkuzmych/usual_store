@@ -10,6 +10,9 @@ import (
 func (app *application) routes() http.Handler {
 	mux := chi.NewRouter()
 
+	// Add TraceMiddleware as the first middleware
+	mux.Use(TraceMiddleware)
+
 	mux.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

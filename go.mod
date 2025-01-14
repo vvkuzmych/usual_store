@@ -10,6 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang/mock v1.6.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.10.9
 	github.com/stripe/stripe-go/v72 v72.122.0
@@ -31,7 +32,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/phpdave11/gofpdf v1.4.2
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.21.0
 	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 )
