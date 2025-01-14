@@ -29,18 +29,18 @@ func NewModels(db *sql.DB) Models {
 }
 
 // Widget is the type for all widgets
-type Widget struct {
-	ID             int       `json:"id"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description"`
-	InventoryLevel int       `json:"inventory_level"`
-	Price          int       `json:"price"`
-	Image          string    `json:"image"`
-	IsRecurring    bool      `json:"is_recurring"`
-	PlanID         string    `json:"plan_id"`
-	CreatedAt      time.Time `json:"-"`
-	UpdatedAt      time.Time `json:"-"`
-}
+// type Widget struct {
+// 	ID             int       `json:"id"`
+// 	Name           string    `json:"name"`
+// 	Description    string    `json:"description"`
+// 	InventoryLevel int       `json:"inventory_level"`
+// 	Price          int       `json:"price"`
+// 	Image          string    `json:"image"`
+// 	IsRecurring    bool      `json:"is_recurring"`
+// 	PlanID         string    `json:"plan_id"`
+// 	CreatedAt      time.Time `json:"-"`
+// 	UpdatedAt      time.Time `json:"-"`
+// }
 
 // Order is the type for all orders
 type Order struct {
@@ -102,45 +102,45 @@ type User struct {
 }
 
 // Customer is the type for customers
-type Customer struct {
-	ID        int       `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
-}
+// type Customer struct {
+// 	ID        int       `json:"id"`
+// 	FirstName string    `json:"first_name"`
+// 	LastName  string    `json:"last_name"`
+// 	Email     string    `json:"email"`
+// 	CreatedAt time.Time `json:"-"`
+// 	UpdatedAt time.Time `json:"-"`
+// }
 
 // GetWidget gets widget by id
-func (m *DBModel) GetWidget(id int) (Widget, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+// func (m *DBModel) GetWidget(id int) (Widget, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
 
-	stmt := `SELECT id, name, description, inventory_level, price, image, is_recurring, plan_id, created_at, updated_at FROM widgets WHERE id=$1`
-	row := m.DB.QueryRowContext(ctx, stmt, id)
+// 	stmt := `SELECT id, name, description, inventory_level, price, image, is_recurring, plan_id, created_at, updated_at FROM widgets WHERE id=$1`
+// 	row := m.DB.QueryRowContext(ctx, stmt, id)
 
-	var widget Widget
-	err := row.Scan(
-		&widget.ID,
-		&widget.Name,
-		&widget.Description,
-		&widget.InventoryLevel,
-		&widget.Price,
-		&widget.Image,
-		&widget.IsRecurring,
-		&widget.PlanID,
-		&widget.CreatedAt,
-		&widget.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return widget, fmt.Errorf("no widget found with id %d", id)
-		}
-		return widget, err
-	}
+// 	var widget Widget
+// 	err := row.Scan(
+// 		&widget.ID,
+// 		&widget.Name,
+// 		&widget.Description,
+// 		&widget.InventoryLevel,
+// 		&widget.Price,
+// 		&widget.Image,
+// 		&widget.IsRecurring,
+// 		&widget.PlanID,
+// 		&widget.CreatedAt,
+// 		&widget.UpdatedAt,
+// 	)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			return widget, fmt.Errorf("no widget found with id %d", id)
+// 		}
+// 		return widget, err
+// 	}
 
-	return widget, nil
-}
+// 	return widget, nil
+// }
 
 // InsertTransaction insert a new txn and returns new id
 func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
@@ -253,24 +253,24 @@ func (m *DBModel) CheckWidgetExistence(ctx context.Context, widgetID int) error 
 }
 
 // InsertCustomer inserts a customer record into the database.
-func (m *DBModel) InsertCustomer(customer Customer) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+// func (m *DBModel) InsertCustomer(customer Customer) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
 
-	// Insert the customer into the database
-	const insertQuery = `
-		INSERT INTO customers (first_name, last_name, email)
-		VALUES ($1, $2, $3)
-	`
+// 	// Insert the customer into the database
+// 	const insertQuery = `
+// 		INSERT INTO customers (first_name, last_name, email)
+// 		VALUES ($1, $2, $3)
+// 	`
 
-	_, err := m.DB.ExecContext(ctx, insertQuery, customer.FirstName, customer.LastName, customer.Email)
-	if err != nil {
-		logQueryError("InsertCustomer", insertQuery, customer, err)
-		return fmt.Errorf("failed to insert customer: %w", err)
-	}
+// 	_, err := m.DB.ExecContext(ctx, insertQuery, customer.FirstName, customer.LastName, customer.Email)
+// 	if err != nil {
+// 		logQueryError("InsertCustomer", insertQuery, customer, err)
+// 		return fmt.Errorf("failed to insert customer: %w", err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // GetLastInsertedCustomerID retrieves the last inserted customer ID.
 func (m *DBModel) GetLastInsertedCustomerID() (int, error) {

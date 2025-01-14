@@ -127,7 +127,7 @@ func (app *application) serve() error {
 	// Log that the server is starting
 	app.infoLog.Println(fmt.Sprintf("Starting invoice microservice end server in on port %d", app.config.port))
 
-	// Graceful shutdown handling
+	// Graceful shutdown handling of invoice
 	go func() {
 		// Listen for interrupt or termination signals
 		ch := make(chan os.Signal, 1)
