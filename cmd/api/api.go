@@ -154,6 +154,7 @@ func main() {
 			dbErrorCh <- err
 			return
 		}
+		infoLog.Println("Connected to database")
 		dbConnectedCh <- &models.DBModel{DB: conn}
 	}()
 
@@ -180,6 +181,7 @@ func main() {
 		if err != nil {
 			errorLog.Fatal(err)
 		}
+		infoLog.Println("Successfully connected to database")
 
 	case err := <-dbErrorCh:
 		// Handle database connection error

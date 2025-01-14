@@ -47,16 +47,16 @@ type jsonResponse struct {
 }
 
 // Invoice describes payload that sends to microservice
-type Invoice struct  {
-	ID 			int 		`json:"id"`
-	WidgetID  	int 		`json:"widget_id"`
-	Amount     	int 		`json:"amount"`
-	Quantity   	int 		`json:"quantity"`
-	Product    	string 		`json:"product"`
-	FirstName 	string 		`json:"first_name"`
-	LastName 	string 		`json:"last_name"`
-	Email  		string 		`json:"email"`
-	CreatedAt   time.Time 	`json:"created_at"`
+type Invoice struct {
+	ID        int       `json:"id"`
+	WidgetID  int       `json:"widget_id"`
+	Amount    int       `json:"amount"`
+	Quantity  int       `json:"quantity"`
+	Product   string    `json:"product"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // GetPaymentIntent get payment intent
@@ -216,20 +216,20 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		}
 
 		invoice := Invoice{
-			ID: order.ID,
-			Amount: 3000,
-			Product: "Subscription",
-			Quantity: order.Quantity,
+			ID:        order.ID,
+			Amount:    3000,
+			Product:   "Subscription",
+			Quantity:  order.Quantity,
 			FirstName: data.FirstName,
-			LastName: data.LastName,
-			Email:  data.Email,
+			LastName:  data.LastName,
+			Email:     data.Email,
 			CreatedAt: time.Now(),
 		}
 		err = app.callInvoiceMicroservice(invoice)
 		if err != nil {
 			app.errorLog.Println(err)
 		}
-		
+
 	}
 
 	response := jsonResponse{
@@ -249,16 +249,16 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 func (app *application) callInvoiceMicroservice(invoice Invoice) error {
 	url := "http://localhost:5000/invoice/create-and-send"
 	out, err := json.MarshalIndent(invoice, "", "\t")
-	if err != nil  {
+	if err != nil {
 		return err
 	}
 
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
 	request.Header.Set("Content-Type", "application/json")
 
-	client :=  &http.Client{}
+	client := &http.Client{}
 	resp, err := client.Do(request)
-	if err != nil  {
+	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
@@ -710,9 +710,11 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 	//update status in DB
 	err = app.DB.UpdateOrderStatus(chargeToRefund.ID, 2)
 	if err != nil {
+		app.infoLog.Println("charge was refunded, but error happens while updating order in DB")
 		app.badRequest(w, r, errors.New("charge was refunded, but error happens while updating order in DB"))
 		return
 	}
+	app.infoLog.Println("status was refunded")
 
 	// response message with error
 	var resp struct {
