@@ -36,8 +36,7 @@ func TestCheckCustomerExistence(t *testing.T) {
 					WithArgs("customer@example.com").
 					WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 			},
-			expected:   true,
-			shouldFail: false,
+			expected: true,
 		},
 		{
 			name:  "Customer does not exist",
@@ -47,8 +46,6 @@ func TestCheckCustomerExistence(t *testing.T) {
 					WithArgs("nonexistent@example.com").
 					WillReturnRows(sqlmock.NewRows([]string{"does not exists"}).AddRow(false))
 			},
-			expected:   false,
-			shouldFail: false,
 		},
 		{
 			name:  "Database error",
@@ -58,7 +55,6 @@ func TestCheckCustomerExistence(t *testing.T) {
 					WithArgs("error@example.com").
 					WillReturnError(errors.New("database error"))
 			},
-			expected:   false,
 			shouldFail: true,
 			err:        errors.New("database error"),
 		},
