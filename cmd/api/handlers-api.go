@@ -173,7 +173,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		txnMsg = msg
 	}
 	if ok {
-		subscription, err = card.SubscribeToPlan(stripeCustomer, data.Plan, data.Email, data.LastFour, "")
+		subscription, err = card.SubscribeToPlan(stripeCustomer, data.Plan, data.LastFour, "")
 		if err != nil {
 			app.errorLog.Println(err)
 			ok = false
