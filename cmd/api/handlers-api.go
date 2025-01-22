@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -90,7 +91,11 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		}
 
 		w.Header().Set(contentType, applicationJson)
-		w.Write(out)
+		_, err = w.Write(out)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 	} else {
 		j := jsonResponse{
 			OK:      false,
@@ -103,7 +108,11 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 			app.errorLog.Println(err)
 		}
 		w.Header().Set(contentType, applicationJson)
-		w.Write(out)
+		_, err = w.Write(out)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 	}
 }
 
@@ -125,7 +134,12 @@ func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set(contentType, applicationJson)
-	w.Write(out)
+	_, err = w.Write(out)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
 }
 
 // CreateCustomerAndSubscribeToPlan create customer and subscribe to plan
@@ -229,7 +243,6 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		if err != nil {
 			app.errorLog.Println(err)
 		}
-
 	}
 
 	response := jsonResponse{
@@ -242,7 +255,11 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		return
 	}
 	w.Header().Set(contentType, "application/json")
-	w.Write(out)
+	_, err = w.Write(out)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 // callInvoiceMicroservice calls invoice microservice that create invoice
@@ -264,7 +281,12 @@ func (app *application) callInvoiceMicroservice(invoice Invoice) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			app.errorLog.Println(err)
+		}
+	}(resp.Body)
 
 	return nil
 }
@@ -328,7 +350,11 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 
 	err := app.readJSON(w, r, &userInput)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -337,7 +363,11 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		fmt.Println("error getting user by email")
 
-		app.invalidCredentials(w)
+		err = app.invalidCredentials(w)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -345,21 +375,33 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		fmt.Println("error password")
 
-		app.invalidCredentials(w)
+		err = app.invalidCredentials(w)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	if !validPassword {
 		fmt.Println("error - not valid password")
 
-		app.invalidCredentials(w)
+		err = app.invalidCredentials(w)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	// Call the TokenService to create and store the token
 	token, err := app.tokenService.CreateToken(ctx, user, 24*time.Hour, models.ScopeAuthentication)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -379,7 +421,11 @@ func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		fmt.Println("error authentication")
 
-		app.invalidCredentials(w)
+		err = app.invalidCredentials(w)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -389,7 +435,11 @@ func (app *application) CheckAuthentication(w http.ResponseWriter, r *http.Reque
 	}
 	payload.Error = false
 	payload.Message = fmt.Sprintf("Token for user %s created.", user.Email)
-	app.writeJSON(w, http.StatusOK, payload)
+	err = app.writeJSON(w, http.StatusOK, payload)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
 }
 
@@ -458,13 +508,21 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 
 	pi, err := card.RetrievePaymentIntent(txnData.PaymentIntent)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	pm, err := card.GetPaymentMethod(txnData.PaymentMethod)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -485,10 +543,18 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 	}
 	_, err = app.SaveTransaction(txn)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
-	app.writeJSON(w, http.StatusOK, txnData)
+	err = app.writeJSON(w, http.StatusOK, txnData)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
@@ -498,7 +564,11 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -511,7 +581,11 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		}
 		resp.Error = true
 		resp.Message = "No matching email found in DB"
-		app.writeJSON(w, http.StatusAccepted, resp)
+		err = app.writeJSON(w, http.StatusAccepted, resp)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -530,7 +604,11 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 	//send email
 	err = app.SendEmail("info@usual_store.com", payload.Email, "Password Reset Request", "password-reset", data)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -539,7 +617,11 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		Message string `json:"message"`
 	}
 	resp.Error = false
-	app.writeJSON(w, http.StatusCreated, resp)
+	err = app.writeJSON(w, http.StatusCreated, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -550,35 +632,55 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
-	encyptor := encryption.Encryption{
+	encryptor := encryption.Encryption{
 		Key: []byte(app.config.secretkey),
 	}
 
-	realEmail, err := encyptor.Decrypt(payload.Email)
+	realEmail, err := encryptor.Decrypt(payload.Email)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	user, err := app.DB.GetUserByEmail(realEmail)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	err = app.DB.UpdatePasswordForUser(user, string(newHash))
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -589,7 +691,11 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	resp.Error = false
 	resp.Message = "password changed"
 
-	app.writeJSON(w, http.StatusCreated, resp)
+	err = app.writeJSON(w, http.StatusCreated, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
@@ -600,14 +706,22 @@ func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	allSales, lastPage, totalRecords, err := app.DB.GetAllOrders(payload.PageSize, payload.CurrentPage)
 	if err != nil {
 		fmt.Println("error getting all sales", err)
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -625,7 +739,11 @@ func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 	response.TotalRecords = totalRecords
 	response.Orders = allSales
 
-	app.writeJSON(w, http.StatusOK, response)
+	err = app.writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
@@ -636,7 +754,11 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 
 	err := app.readJSON(w, r, &payload)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -644,7 +766,11 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		fmt.Println("error getting all sales", err)
 
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -662,7 +788,11 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
 	response.TotalRecords = totalRecords
 	response.Subscriptions = allSubscriptions
 
-	app.writeJSON(w, http.StatusOK, response)
+	err = app.writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
@@ -670,7 +800,11 @@ func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
 
 	orderID, err := strconv.Atoi(id)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -678,10 +812,18 @@ func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("error getting sale", err)
 
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
-	app.writeJSON(w, http.StatusOK, order)
+	err = app.writeJSON(w, http.StatusOK, order)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
@@ -694,7 +836,11 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &chargeToRefund)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -706,7 +852,11 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 
 	err = card.Refund(chargeToRefund.PaymentIntent, chargeToRefund.Amount)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -714,7 +864,11 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 	err = app.DB.UpdateOrderStatus(chargeToRefund.ID, 2)
 	if err != nil {
 		app.infoLog.Println("charge was refunded, but error happens while updating order in DB")
-		app.badRequest(w, r, errors.New("charge was refunded, but error happens while updating order in DB"))
+		err = app.badRequest(w, r, errors.New("charge was refunded, but error happens while updating order in DB"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 	app.infoLog.Println("status was refunded")
@@ -727,7 +881,11 @@ func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
 
 	resp.Error = false
 	resp.Message = "refunded successfully"
-	app.writeJSON(w, http.StatusOK, resp)
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Request) {
@@ -739,7 +897,11 @@ func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Reques
 
 	err := app.readJSON(w, r, &subscriptionToCancel)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -751,14 +913,22 @@ func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Reques
 
 	err = card.CancelSubscription(subscriptionToCancel.PaymentIntent)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	//update status in DB
 	err = app.DB.UpdateOrderStatus(subscriptionToCancel.ID, 3)
 	if err != nil {
-		app.badRequest(w, r, errors.New("subscription was canceled, but error happens while updating order in DB"))
+		err = app.badRequest(w, r, errors.New("subscription was canceled, but error happens while updating order in DB"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
@@ -770,16 +940,28 @@ func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Reques
 
 	resp.Error = false
 	resp.Message = "successfully cancelled subscription"
-	app.writeJSON(w, http.StatusOK, resp)
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
 	allUsers, err := app.DB.GetAllUsers()
 	if err != nil {
-		app.badRequest(w, r, err)
+		err := app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
-	app.writeJSON(w, http.StatusOK, allUsers)
+	err = app.writeJSON(w, http.StatusOK, allUsers)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) ShowUser(w http.ResponseWriter, r *http.Request) {
@@ -788,10 +970,18 @@ func (app *application) ShowUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := app.DB.GetUserByID(userID)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
-	app.writeJSON(w, http.StatusOK, user)
+	err = app.writeJSON(w, http.StatusOK, user)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
@@ -802,39 +992,63 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 
 	err := app.readJSON(w, r, &user)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	if userID > 0 {
 		err = app.DB.EditUser(user)
 		if err != nil {
-			app.badRequest(w, r, err)
+			err = app.badRequest(w, r, err)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
 			return
 		}
 
 		if user.Password != "" {
 			newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 			if err != nil {
-				app.badRequest(w, r, err)
+				err = app.badRequest(w, r, err)
+				if err != nil {
+					app.errorLog.Println(err)
+					return
+				}
 				return
 			}
 
 			err = app.DB.UpdatePasswordForUser(user, string(newHash))
 			if err != nil {
-				app.badRequest(w, r, err)
+				err = app.badRequest(w, r, err)
+				if err != nil {
+					app.errorLog.Println(err)
+					return
+				}
 				return
 			}
 		}
 	} else {
 		newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if err != nil {
-			app.badRequest(w, r, err)
+			err = app.badRequest(w, r, err)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
 			return
 		}
 		err = app.DB.AddUser(user, string(newHash))
 		if err != nil {
-			app.badRequest(w, r, err)
+			err = app.badRequest(w, r, err)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
 			return
 		}
 	}
@@ -845,7 +1059,11 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp.Error = false
-	app.writeJSON(w, http.StatusOK, resp)
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
@@ -853,7 +1071,11 @@ func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, _ := strconv.Atoi(id)
 	err := app.DB.DeleteUser(userID)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 	var resp struct {
@@ -861,5 +1083,9 @@ func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 	}
 	resp.Error = false
-	app.writeJSON(w, http.StatusOK, resp)
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
