@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -43,16 +44,17 @@ func (app *application) wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+	app.infoLog.Println(fmt.Sprintf("New connection from %s", r.RemoteAddr))
+	var response WsJsonResponse
+	response.Message = "connected to server"
 
-	conn := WebSocketConnection{Conn: ws}
-	if _, exists := clients[conn]; exists {
-		app.infoLog.Println("Closing duplicate WebSocket connection")
-		_ = ws.Close()
+	err = ws.WriteJSON(response)
+	if err != nil {
+		app.errorLog.Println(err)
 		return
 	}
-
+	conn := WebSocketConnection{Conn: ws}
 	clients[conn] = ""
-	app.infoLog.Printf("New connection from %s", r.RemoteAddr)
 
 	go app.ListenForWS(&conn)
 }

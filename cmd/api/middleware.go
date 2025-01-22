@@ -30,13 +30,6 @@ func (app *application) Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		// Simulate authentication
-		if r.Header.Get("Authorization") != "valid-token" {
-			failedAttempts[ip]++
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
 		userAgent := r.Header.Get("User-Agent")
 		if userAgent == "" || userAgent == "curl" {
 			http.Error(w, "Forbidden", http.StatusForbidden)
