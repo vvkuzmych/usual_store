@@ -1,0 +1,66 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - "main"
+      - "develop"  # Added the develop branch
+  pull_request:
+    branches:
+      - "main"
+      - "develop"  # Added the develop branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.20', '1.23' ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && golangci-lint run ./...
+
+      - name: Run Tests with Coverage
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.out
+
+      - name: Notify Slack
+        if: failure()
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "Workflow *${{ github.workflow }}* failed in *${{ github.repository }}* on branch *${{ github.ref_name }}*."
+            }
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
