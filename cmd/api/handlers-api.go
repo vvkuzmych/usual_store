@@ -499,7 +499,11 @@ func (app *application) VirtualTerminalPaymentSucceeded(w http.ResponseWriter, r
 
 	err := app.readJSON(w, r, &txnData)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
