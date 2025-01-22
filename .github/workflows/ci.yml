@@ -55,12 +55,3 @@ jobs:
           name: coverage-report
           path: coverage.out
 
-      - name: Notify Slack
-        if: failure()
-        uses: slackapi/slack-github-action@v1.23.0
-        with:
-          payload: |
-            {
-              "text": "Workflow *${{ github.workflow }}* failed in *${{ github.repository }}* on branch *${{ github.ref_name }}*."
-            }
-          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
