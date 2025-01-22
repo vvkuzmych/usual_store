@@ -12,6 +12,8 @@ func (app *application) routes() http.Handler {
 
 	// Add TraceMiddleware as the first middleware
 	mux.Use(TraceMiddleware)
+	// Add RateLimitMiddleware
+	mux.Use(RateLimitMiddleware)
 
 	mux.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},

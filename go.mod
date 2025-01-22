@@ -18,6 +18,7 @@ require (
 	github.com/stripe/stripe-go/v72 v72.122.0
 	github.com/xhit/go-simple-mail/v2 v2.16.0
 	golang.org/x/crypto v0.26.0
+	golang.org/x/time v0.9.0
 )
 
 require (

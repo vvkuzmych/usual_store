@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+var failedAttempts = make(map[string]int)
+
 func (app *application) Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		traceID := r.Context().Value(TraceIDKey).(string) // Retrieve trace ID from context
@@ -17,6 +19,26 @@ func (app *application) Auth(next http.Handler) http.Handler {
 			app.invalidCredentials(w)
 			return
 		}
+
+		ip := r.RemoteAddr
+		if failedAttempts[ip] > 5 {
+			http.Error(w, "Access Denied", http.StatusForbidden)
+			return
+		}
+
+		// Simulate authentication
+		if r.Header.Get("Authorization") != "valid-token" {
+			failedAttempts[ip]++
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		userAgent := r.Header.Get("User-Agent")
+		if userAgent == "" || userAgent == "curl" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
