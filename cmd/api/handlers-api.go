@@ -254,6 +254,9 @@ func (app *application) callInvoiceMicroservice(invoice Invoice) error {
 	}
 
 	request, err := http.NewRequest("POST", url, bytes.NewBuffer(out))
+	if err != nil {
+		return err
+	}
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}

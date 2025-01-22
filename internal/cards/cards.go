@@ -148,7 +148,7 @@ func (c *Card) CancelSubscription(subID string) error {
 
 // cardErrorMessage maps specific Stripe error codes related to card issues to user-friendly messages.
 func cardErrorMessage(code stripe.ErrorCode) string {
-	var msg = ""
+	var msg string
 	switch code {
 	case stripe.ErrorCodeCardDeclined:
 		msg = "Your card was declined"
