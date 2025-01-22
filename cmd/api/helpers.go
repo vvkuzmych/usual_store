@@ -21,7 +21,11 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data interf
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(out)
+	_, err = w.Write(out)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
 
 	return nil
 }
@@ -56,7 +60,11 @@ func (app *application) badRequest(w http.ResponseWriter, r *http.Request, err e
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write(out)
+	_, err = w.Write(out)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
 	return nil
 }
 
@@ -98,5 +106,9 @@ func (app *application) failedValidation(w http.ResponseWriter, r *http.Request,
 	payload.Error = true
 	payload.Message = "validation failed"
 	payload.Errors = errors
-	app.writeJSON(w, http.StatusUnprocessableEntity, payload)
+	err := app.writeJSON(w, http.StatusUnprocessableEntity, payload)
+	if err != nil {
+		app.infoLog.Println(err)
+		return
+	}
 }

@@ -26,17 +26,25 @@ func (app *application) CreateAndSendInvoice(w http.ResponseWriter, r *http.Requ
 
 	err := app.readJSON(w, r, &order)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
 
 	// generate a pdf invoice
 	err = app.createInvoicePDF(order)
 	if err != nil {
-		app.badRequest(w, r, err)
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
 		return
 	}
-	
+
 	// create mail
 
 	// send mail with attachment
@@ -48,7 +56,11 @@ func (app *application) CreateAndSendInvoice(w http.ResponseWriter, r *http.Requ
 	}
 	resp.Error = false
 	resp.Message = fmt.Sprintf("Invoice %d.pdf created and sent to %s", order.ID, order.Email)
-	app.writeJSON(w, http.StatusCreated, resp)
+	err = app.writeJSON(w, http.StatusCreated, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 }
 
 func (app *application) createInvoicePDF(order Order) error {
@@ -61,7 +73,6 @@ func (app *application) createInvoicePDF(order Order) error {
 	const invoiceTemplatePath = "./pdf-templates/invoice.pdf"
 
 	t := importer.ImportPage(pdf, invoiceTemplatePath, 1, "/MediaBox")
-
 
 	pdf.AddPage()
 	importer.UseImportedTemplate(pdf, t, 0, 0, 215.9, 0)
@@ -83,7 +94,7 @@ func (app *application) createInvoicePDF(order Order) error {
 	pdf.CellFormat(20, 8, fmt.Sprintf("%d", order.Quantity), "", 0, "C", false, 0, "")
 
 	pdf.SetX(185)
-	pdf.CellFormat(20, 8, fmt.Sprintf("$%.2f", float32(order.Amount / 100.0)), "", 0, "R", false, 0, "")
+	pdf.CellFormat(20, 8, fmt.Sprintf("$%.2f", float32(order.Amount/100.0)), "", 0, "R", false, 0, "")
 
 	invoicePath := fmt.Sprintf("./invoices/%d.pdf", order.ID)
 	err := pdf.OutputFileAndClose(invoicePath)
