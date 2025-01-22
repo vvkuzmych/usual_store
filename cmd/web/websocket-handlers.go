@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -44,7 +43,7 @@ func (app *application) wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	app.infoLog.Println(fmt.Sprintf("New connection from %s", r.RemoteAddr))
+	app.infoLog.Printf("New connection from %s", r.RemoteAddr)
 	var response WsJsonResponse
 	response.Message = "connected to server"
 
