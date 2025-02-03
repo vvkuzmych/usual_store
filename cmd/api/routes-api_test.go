@@ -41,14 +41,14 @@ func setupTestApp(t *testing.T) *application {
 	}
 
 	// Create the necessary tables for testing
-	createWidgets(t, err, db)
+	createWidgets(t, db)
 
 	// Return the application with the DBModel initialized
 	return &application{DB: models.DBModel{DB: db}}
 }
 
-func createWidgets(t *testing.T, err error, db *sql.DB) {
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS widgets (id              SERIAL PRIMARY KEY,
+func createWidgets(t *testing.T, db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS widgets (id              SERIAL PRIMARY KEY,
      name            VARCHAR(255) NOT NULL,
      description     TEXT,
      inventory_level INTEGER,
