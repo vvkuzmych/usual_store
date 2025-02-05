@@ -64,7 +64,7 @@ func (app *application) serve() error {
 	}
 
 	// Log that the server is starting
-	app.infoLog.Println(fmt.Sprintf("Starting Back end server in %s mode on port %d", app.config.env, app.config.port))
+	app.infoLog.Printf("Starting Back end server in %s mode on port %d", app.config.env, app.config.port)
 
 	// Graceful shutdown handling
 	go func() {

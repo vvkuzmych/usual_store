@@ -308,8 +308,12 @@ func (app *application) LoginPage(w http.ResponseWriter, r *http.Request) {
 
 // PostLoginPage displays login page
 func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
-	app.Session.RenewToken(r.Context())
-	err := r.ParseForm()
+	err := app.Session.RenewToken(r.Context())
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+	err = r.ParseForm()
 	if err != nil {
 		app.errorLog.Println(err)
 		return
@@ -329,8 +333,16 @@ func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
 
 // LogoutPage destroys session and redirect to login page
 func (app *application) LogoutPage(w http.ResponseWriter, r *http.Request) {
-	app.Session.Destroy(r.Context())
-	app.Session.RenewToken(r.Context())
+	err := app.Session.Destroy(r.Context())
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+	err = app.Session.RenewToken(r.Context())
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
@@ -457,14 +469,14 @@ func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request)
 
 // Function to generate a nonce
 func generateNonce() string {
-    // Generate 16 random bytes
-    nonce := make([]byte, 16)
-    _, err := rand.Read(nonce)
-    if err != nil {
-        fmt.Println("Error generating nonce:", err)
-        return ""
-    }
+	// Generate 16 random bytes
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		fmt.Println("Error generating nonce:", err)
+		return ""
+	}
 
-    // Return the base64 encoded nonce
-    return base64.StdEncoding.EncodeToString(nonce)
+	// Return the base64 encoded nonce
+	return base64.StdEncoding.EncodeToString(nonce)
 }

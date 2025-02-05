@@ -78,9 +78,13 @@ func main() {
 		version:  version,
 	}
 
-	app.CreateDirIfNotExist("./invoices")
+	err := app.CreateDirIfNotExist("./invoices")
+	if err != nil {
+		app.errorLog.Fatal(err)
+		return
+	}
 
-	err := app.serve()
+	err = app.serve()
 	if err != nil {
 		errorLog.Fatal(err)
 	}
@@ -125,7 +129,7 @@ func (app *application) serve() error {
 	}
 
 	// Log that the server is starting
-	app.infoLog.Println(fmt.Sprintf("Starting invoice microservice end server in on port %d", app.config.port))
+	app.infoLog.Printf("Starting invoice microservice end server in on port %d", app.config.port)
 
 	// Graceful shutdown handling of invoice
 	go func() {

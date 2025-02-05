@@ -68,7 +68,7 @@ func (c *Card) RetrievePaymentIntent(s string) (*stripe.PaymentIntent, error) {
 }
 
 // SubscribeToPlan subscribes a Stripe customer to a specified plan.
-func (c *Card) SubscribeToPlan(customer *stripe.Customer, plan, email, last4, cardType string) (*stripe.Subscription, error) {
+func (c *Card) SubscribeToPlan(customer *stripe.Customer, plan, last4, cardType string) (*stripe.Subscription, error) {
 	stripeCustomerID := customer.ID
 	items := []*stripe.SubscriptionItemsParams{
 		{Plan: stripe.String(plan)},
@@ -103,7 +103,7 @@ func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error
 			DefaultPaymentMethod: stripe.String(pm),
 		},
 	}
-	customer, err := customer.New(customerParams)
+	custom, err := customer.New(customerParams)
 	if err != nil {
 		msg := ""
 		if stripeErr, ok := err.(*stripe.Error); ok {
@@ -111,7 +111,7 @@ func (c *Card) CreateCustomer(pm, email string) (*stripe.Customer, string, error
 		}
 		return nil, msg, err
 	}
-	return customer, "", nil
+	return custom, "", nil
 }
 
 // Refund processes a refund for a given payment intent.
@@ -148,7 +148,7 @@ func (c *Card) CancelSubscription(subID string) error {
 
 // cardErrorMessage maps specific Stripe error codes related to card issues to user-friendly messages.
 func cardErrorMessage(code stripe.ErrorCode) string {
-	var msg = ""
+	var msg string
 	switch code {
 	case stripe.ErrorCodeCardDeclined:
 		msg = "Your card was declined"

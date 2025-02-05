@@ -16,20 +16,17 @@ func (app *application) Auth(next http.Handler) http.Handler {
 
 		_, err := app.authenticateToken(r)
 		if err != nil {
-			app.invalidCredentials(w)
+			err = app.invalidCredentials(w)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
 			return
 		}
 
 		ip := r.RemoteAddr
 		if failedAttempts[ip] > 5 {
 			http.Error(w, "Access Denied", http.StatusForbidden)
-			return
-		}
-
-		// Simulate authentication
-		if r.Header.Get("Authorization") != "valid-token" {
-			failedAttempts[ip]++
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
