@@ -2,12 +2,15 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.10 (Homebrew)
--- Dumped by pg_dump version 14.10 (Homebrew)
+\restrict uCNdFndLx99Bo4hkVc3LU4qxA9LDmkrCi3Plha2AM5dnoHCO7Blko3xuJ8aaxVu
+
+-- Dumped from database version 16.6 (Postgres.app)
+-- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -49,7 +52,7 @@ CREATE SEQUENCE public.customers_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.customers_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.customers_id_seq OWNER TO postgres;
 
 --
 -- Name: customers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -90,7 +93,7 @@ CREATE SEQUENCE public.orders_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.orders_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.orders_id_seq OWNER TO postgres;
 
 --
 -- Name: orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -150,7 +153,7 @@ CREATE SEQUENCE public.statuses_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.statuses_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.statuses_id_seq OWNER TO postgres;
 
 --
 -- Name: statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -190,7 +193,7 @@ CREATE SEQUENCE public.tokens_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.tokens_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.tokens_id_seq OWNER TO postgres;
 
 --
 -- Name: tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -226,7 +229,7 @@ CREATE SEQUENCE public.transaction_statuses_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.transaction_statuses_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.transaction_statuses_id_seq OWNER TO postgres;
 
 --
 -- Name: transaction_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -270,7 +273,7 @@ CREATE SEQUENCE public.transactions_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.transactions_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.transactions_id_seq OWNER TO postgres;
 
 --
 -- Name: transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -309,7 +312,7 @@ CREATE SEQUENCE public.users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.users_id_seq OWNER TO postgres;
 
 --
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -351,7 +354,7 @@ CREATE SEQUENCE public.widgets_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.widgets_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.widgets_id_seq OWNER TO postgres;
 
 --
 -- Name: widgets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
@@ -438,14 +441,6 @@ ALTER TABLE ONLY public.customers
 
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
-
-
---
--- Name: schema_migration schema_migration_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.schema_migration
-    ADD CONSTRAINT schema_migration_pkey PRIMARY KEY (version);
 
 
 --
@@ -593,4 +588,6 @@ ALTER TABLE ONLY public.transactions
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict uCNdFndLx99Bo4hkVc3LU4qxA9LDmkrCi3Plha2AM5dnoHCO7Blko3xuJ8aaxVu
 

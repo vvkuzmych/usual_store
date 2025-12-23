@@ -1,0 +1,50 @@
+usual_store/
+├── 📄 Configuration Files
+│   ├── docker-compose.yml ✨ (Modified - IPv6 enabled)
+│   ├── database.yml ✨ (Modified - IPv6 hosts)
+│   ├── Makefile ✨ (Enhanced - 23+ targets)
+│   ├── Dockerfile
+│   ├── .env (your configuration)
+│   └── env.example ✨ (New - template with IPv6 docs)
+│
+├── 📚 IPv6 Documentation (NEW)
+│   ├── IPv6-REFACTORING-COMPLETE.md  ⭐ (Start here!)
+│   ├── QUICKSTART-IPv6.md            📖 (Quick reference)
+│   ├── IPv6-SETUP.md                 📖 (Detailed guide)
+│   ├── CHANGES-IPv6.md               📝 (What changed)
+│   └── BEFORE-AFTER-IPv6.md          🔄 (Visual comparison)
+│
+├── 🗄️ Database
+│   ├── migrations/
+│   │   ├── schema.sql
+│   │   └── *.up.sql, *.down.sql
+│   └── postgres-init/ ✨ (New)
+│       └── 01-enable-ipv6.sql
+│
+├── 🧪 Testing & Scripts
+│   └── scripts/ ✨ (New)
+│       └── test-ipv6.sh (Comprehensive IPv6 tests)
+│
+├── 💻 Application Code
+│   ├── cmd/
+│   │   ├── web/       (Front-end)
+│   │   ├── api/       (Back-end API)
+│   │   └── micro/     (Invoice service)
+│   ├── internal/
+│   │   ├── driver/
+│   │   ├── models/
+│   │   └── ...
+│   └── pkg/
+│
+└── 🚀 Quick Commands
+    ├── make docker-up       → Start all services
+    ├── make test-ipv6       → Test IPv6 connectivity
+    ├── make verify-db-ipv6  → Check PostgreSQL IPv6
+    ├── make help            → Show all commands
+    └── ./scripts/test-ipv6.sh → Comprehensive test
+
+✨ = New or Modified for IPv6
+⭐ = Start reading here
+📖 = Documentation
+📝 = Reference
+🔄 = Comparison
