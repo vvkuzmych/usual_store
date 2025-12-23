@@ -11,6 +11,25 @@ development:
   database: usualstore
   user: postgres
   password: password
-  host: localhost
+  host: "127.0.0.1"  # IPv4 localhost (or use "::1" for IPv6 with Docker Desktop 4.42+)
+  port: 5433  # Docker PostgreSQL port (to avoid conflict with local PostgreSQL on 5432)
+  sslmode: disable
+
+docker:
+  dialect: postgres
+  database: usualstore
+  user: postgres
+  password: password
+  host: database  # Docker service name (supports both IPv4 and IPv6)
   port: 5432
+  sslmode: disable
+
+# IPv6-specific configuration for local development
+development_ipv6:
+  dialect: postgres
+  database: usualstore
+  user: postgres
+  password: password
+  host: "[::1]"  # IPv6 localhost with brackets for DSN format
+  port: 5433  # Docker PostgreSQL port (to avoid conflict with local PostgreSQL on 5432)
   sslmode: disable
