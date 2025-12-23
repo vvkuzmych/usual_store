@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: usualstore
+spec:
+  replicas: 3  # High availability with 3 replicas
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      initContainers:
+      # Wait for database to be ready
+      - name: wait-for-db
+        image: postgres:15
+        command:
+          - sh
+          - -c
+          - |
+            until pg_isready -h database -U postgres -d usualstore; do
+              echo "Waiting for database..."
+              sleep 2
+            done
+            echo "Database is ready!"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DB_PASSWORD
+      # Wait for backend to be ready
+      - name: wait-for-backend
+        image: curlimages/curl:latest
+        command:
+          - sh
+          - -c
+          - |
+            until curl -f http://backend:4001/health; do
+              echo "Waiting for backend..."
+              sleep 2
+            done
+            echo "Backend is ready!"
+      containers:
+      - name: frontend
+        # Replace with your actual image
+        # image: YOUR_DOCKERHUB_USERNAME/usualstore-frontend:latest
+        image: usual_store-front-end:latest
+        imagePullPolicy: IfNotPresent  # Change to Always for production
+        ports:
+        - containerPort: 4000
+          name: http
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DATABASE_DSN
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: usualstore-config
+              key: FRONTEND_PORT
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: usualstore-config
+              key: ENVIRONMENT
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 4000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
