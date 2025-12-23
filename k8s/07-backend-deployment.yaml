@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: usualstore
+spec:
+  replicas: 2  # High availability with 2 replicas
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+      # Wait for database to be ready
+      - name: wait-for-db
+        image: postgres:15
+        command:
+          - sh
+          - -c
+          - |
+            until pg_isready -h database -U postgres -d usualstore; do
+              echo "Waiting for database..."
+              sleep 2
+            done
+            echo "Database is ready!"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DB_PASSWORD
+      containers:
+      - name: backend
+        # Replace with your actual image
+        # image: YOUR_DOCKERHUB_USERNAME/usualstore-backend:latest
+        image: usual_store-back-end:latest
+        imagePullPolicy: IfNotPresent  # Change to Always for production
+        ports:
+        - containerPort: 4001
+          name: http
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DATABASE_DSN
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: usualstore-config
+              key: BACKEND_PORT
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: usualstore-config
+              key: ENVIRONMENT
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+

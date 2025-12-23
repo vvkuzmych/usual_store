@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: database-pvc
+  namespace: usualstore
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # StorageClass depends on your cluster:
+  # - Minikube: standard
+  # - GKE: standard, standard-rwo
+  # - EKS: gp2, gp3
+  # - AKS: default, managed-premium
+  # - DigitalOcean: do-block-storage
+  # storageClassName: standard
+

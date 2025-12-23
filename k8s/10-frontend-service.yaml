@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: usualstore
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  selector:
+    app: frontend
+  # Optional: For Minikube, you may need to use NodePort instead:
+  # type: NodePort
+  # ports:
+  # - port: 4000
+  #   targetPort: 4000
+  #   nodePort: 30000  # Access at minikube_ip:30000
+
