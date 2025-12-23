@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   front-end:
     build:
@@ -10,13 +8,18 @@ services:
       - STRIPE_SECRET=${STRIPE_SECRET}
       - STRIPE_KEY=${STRIPE_KEY}
       - USUAL_STORE_PORT=${USUAL_STORE_PORT}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_DSN=postgres://postgres:password@database:5432/usualstore?sslmode=disable
     ports:
       - "${USUAL_STORE_PORT}:${USUAL_STORE_PORT}"
     env_file:
       - .env
+    networks:
+      - usualstore_network
     depends_on:
-      - back-end
+      database:
+        condition: service_healthy
+      back-end:
+        condition: service_started
 
   invoice:
     build:
@@ -29,6 +32,8 @@ services:
       - INVOICE_PORT=${INVOICE_PORT}
     env_file:
       - .env
+    networks:
+      - usualstore_network
 
   back-end:
     build:
@@ -39,13 +44,16 @@ services:
       - STRIPE_SECRET=${STRIPE_SECRET}
       - STRIPE_KEY=${STRIPE_KEY}
       - API_PORT=${API_PORT}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_DSN=postgres://postgres:password@database:5432/usualstore?sslmode=disable
     ports:
       - "${API_PORT}:${API_PORT}"
     env_file:
       - .env
+    networks:
+      - usualstore_network
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   database:
     image: postgres:15
@@ -53,14 +61,38 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: usualstore
+    command: 
+      - "postgres"
+      - "-c"
+      - "listen_addresses=*"
+      - "-c"
+      - "max_connections=200"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"  # IPv4 localhost binding (host:5433 -> container:5432)
+      - "[::1]:5433:5432"      # IPv6 localhost binding (Docker Desktop 4.42+ supports this!)
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      - usualstore_network
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "usualstore" ]
+      test: [ "CMD", "pg_isready", "-U", "postgres", "-d", "usualstore", "-h", "localhost" ]
       interval: 10s
       retries: 5
+      timeout: 5s
+      start_period: 10s
+
+networks:
+  usualstore_network:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+        - subnet: 2001:db8:1::/64
+          gateway: 2001:db8:1::1
 
 volumes:
   db_data:
