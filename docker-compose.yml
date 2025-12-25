@@ -48,6 +48,29 @@ services:
     profiles:
       - react-frontend
 
+  # TypeScript frontend with Vite (newest)
+  typescript-frontend:
+    build:
+      context: ./typescript-frontend
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_URL=http://back-end:4001
+    ports:
+      - "3001:3001"
+    networks:
+      - usualstore_network
+    depends_on:
+      - back-end
+      - ai-assistant
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - typescript-frontend
+
   invoice:
     build:
       context: .
