@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"usual_store/internal/ai"
+	"usual_store/ai"
 
 	_ "github.com/lib/pq"
 )
