@@ -52,7 +52,7 @@ $ psql "postgres://postgres:password@127.0.0.1:5433/usualstore?sslmode=disable"
 # Database
 psql "postgres://postgres:password@[::1]:5433/usualstore?sslmode=disable"
 
-# Web Application
+# Web Application (Go)
 open http://[::1]:4000
 
 # API
@@ -60,6 +60,15 @@ curl http://[::1]:4001
 
 # Invoice Service
 curl http://[::1]:5000
+
+# React Frontend
+open http://[::1]:3000
+
+# TypeScript Frontend
+open http://[::1]:3001
+
+# Redux Frontend
+open http://[::1]:3002
 ```
 
 #### **IPv4 (Still Works)**
@@ -67,7 +76,7 @@ curl http://[::1]:5000
 # Database
 psql "postgres://postgres:password@127.0.0.1:5433/usualstore?sslmode=disable"
 
-# Web Application
+# Web Application (Go)
 open http://localhost:4000
 
 # API
@@ -75,6 +84,15 @@ curl http://localhost:4001
 
 # Invoice Service
 curl http://localhost:5000
+
+# React Frontend
+open http://localhost:3000
+
+# TypeScript Frontend
+open http://localhost:3001
+
+# Redux Frontend
+open http://localhost:3002
 ```
 
 ### **Inside Docker (Container-to-Container)**
@@ -114,10 +132,13 @@ invoice:    172.22.0.2  (IPv4)  |  2001:db8:1::2  (IPv6)
 
 ### **Port Bindings**
 ```
-Database:  127.0.0.1:5433 AND [::1]:5433 → container:5432
-Front-end: 0.0.0.0:4000 (all interfaces, both protocols)
-Back-end:  0.0.0.0:4001 (all interfaces, both protocols)
-Invoice:   0.0.0.0:5000 (all interfaces, both protocols)
+Database:            127.0.0.1:5433 AND [::1]:5433 → container:5432
+Go Frontend:         0.0.0.0:4000 (all interfaces, both protocols)
+Back-end API:        0.0.0.0:4001 (all interfaces, both protocols)
+Invoice Service:     0.0.0.0:5000 (all interfaces, both protocols)
+React Frontend:      127.0.0.1:3000 AND [::1]:3000 → container:3000
+TypeScript Frontend: 127.0.0.1:3001 AND [::1]:3001 → container:3001
+Redux Frontend:      127.0.0.1:3002 AND [::1]:3002 → container:3002
 ```
 
 ---

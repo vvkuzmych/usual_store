@@ -159,6 +159,104 @@ docker-ps:
 	@echo "Listing running services..."
 	docker compose ps
 
+## Frontend application targets
+react-start:
+	@echo "🚀 Starting React Frontend + Backend..."
+	@docker compose --profile react-frontend up -d
+	@echo ""
+	@echo "✅ React Frontend running at: http://localhost:3000"
+	@echo "✅ Backend API running at: http://localhost:4001"
+
+typescript-start:
+	@echo "🚀 Starting TypeScript Frontend + Backend..."
+	@docker compose --profile typescript-frontend up -d
+	@echo ""
+	@echo "✅ TypeScript Frontend running at: http://localhost:3001"
+	@echo "✅ Backend API running at: http://localhost:4001"
+
+go-start:
+	@echo "🚀 Starting Go Frontend + Backend..."
+	@docker compose --profile go-frontend up -d
+	@echo ""
+	@echo "✅ Go Frontend running at: http://localhost:4000"
+	@echo "✅ Backend API running at: http://localhost:4001"
+
+all-frontends-start:
+	@echo "🚀 Starting ALL Frontends + Backend..."
+	@docker compose --profile go-frontend --profile react-frontend --profile typescript-frontend up -d
+	@echo ""
+	@echo "✅ Go Frontend running at:         http://localhost:4000"
+	@echo "✅ React Frontend running at:      http://localhost:3000"
+	@echo "✅ TypeScript Frontend running at: http://localhost:3001"
+	@echo "✅ Backend API running at:         http://localhost:4001"
+
+react-stop:
+	@echo "🛑 Stopping React Frontend..."
+	@docker compose --profile react-frontend down
+	@echo "✅ React Frontend stopped!"
+
+typescript-stop:
+	@echo "🛑 Stopping TypeScript Frontend..."
+	@docker compose --profile typescript-frontend down
+	@echo "✅ TypeScript Frontend stopped!"
+
+go-stop:
+	@echo "🛑 Stopping Go Frontend..."
+	@docker compose --profile go-frontend down
+	@echo "✅ Go Frontend stopped!"
+
+react-logs:
+	@echo "📋 React Frontend logs:"
+	@docker compose logs -f react-frontend
+
+typescript-logs:
+	@echo "📋 TypeScript Frontend logs:"
+	@docker compose logs -f typescript-frontend
+
+go-logs:
+	@echo "📋 Go Frontend logs:"
+	@docker compose logs -f go-frontend
+
+react-build:
+	@echo "🔨 Building React Frontend Docker image..."
+	@docker compose --profile react-frontend build react-frontend
+	@echo "✅ React Frontend image built!"
+
+typescript-build:
+	@echo "🔨 Building TypeScript Frontend Docker image..."
+	@docker compose --profile typescript-frontend build typescript-frontend
+	@echo "✅ TypeScript Frontend image built!"
+
+go-build-docker:
+	@echo "🔨 Building Go Frontend Docker image..."
+	@docker compose --profile go-frontend build go-frontend
+	@echo "✅ Go Frontend image built!"
+
+build-all-frontends:
+	@echo "🔨 Building all frontend Docker images..."
+	@docker compose --profile go-frontend --profile react-frontend --profile typescript-frontend build
+	@echo "✅ All frontend images built!"
+
+react-restart:
+	@echo "🔄 Restarting React Frontend..."
+	@docker compose restart react-frontend
+	@echo "✅ React Frontend restarted!"
+
+typescript-restart:
+	@echo "🔄 Restarting TypeScript Frontend..."
+	@docker compose restart typescript-frontend
+	@echo "✅ TypeScript Frontend restarted!"
+
+go-restart:
+	@echo "🔄 Restarting Go Frontend..."
+	@docker compose restart go-frontend
+	@echo "✅ Go Frontend restarted!"
+
+frontend-status:
+	@echo "📊 Frontend Services Status:"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker compose ps | grep -E "frontend|PORT" || echo "No frontends running"
+
 ## IPv6 connectivity targets
 test-ipv6:
 	@echo "Running IPv6 connectivity tests..."
@@ -209,45 +307,71 @@ help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "Build targets:"
-	@echo "  build              - Build all binaries"
-	@echo "  build_front        - Build front-end binary"
-	@echo "  build_back         - Build back-end binary"
-	@echo "  build_invoice      - Build invoice binary"
-	@echo "  clean              - Clean all binaries"
+	@echo "  build                  - Build all binaries"
+	@echo "  build_front            - Build front-end binary"
+	@echo "  build_back             - Build back-end binary"
+	@echo "  build_invoice          - Build invoice binary"
+	@echo "  clean                  - Clean all binaries"
 	@echo ""
 	@echo "Run targets:"
-	@echo "  start              - Start all services"
-	@echo "  stop               - Stop all services"
+	@echo "  start                  - Start all services"
+	@echo "  stop                   - Stop all services"
 	@echo ""
 	@echo "Docker targets:"
-	@echo "  docker-up          - Start services with Docker Compose"
-	@echo "  docker-down        - Stop Docker Compose services"
-	@echo "  docker-restart     - Restart Docker Compose services"
-	@echo "  docker-logs        - Follow Docker Compose logs"
-	@echo "  docker-ps          - List running containers"
+	@echo "  docker-up              - Start services with Docker Compose"
+	@echo "  docker-down            - Stop Docker Compose services"
+	@echo "  docker-restart         - Restart Docker Compose services"
+	@echo "  docker-logs            - Follow Docker Compose logs"
+	@echo "  docker-ps              - List running containers"
+	@echo ""
+	@echo "Frontend targets:"
+	@echo "  react-start            - Start React Frontend (port 3000) + Backend"
+	@echo "  typescript-start       - Start TypeScript Frontend (port 3001) + Backend"
+	@echo "  go-start               - Start Go Frontend (port 4000) + Backend"
+	@echo "  all-frontends-start    - Start ALL frontends + Backend"
+	@echo "  react-stop             - Stop React Frontend"
+	@echo "  typescript-stop        - Stop TypeScript Frontend"
+	@echo "  go-stop                - Stop Go Frontend"
+	@echo "  react-logs             - View React Frontend logs"
+	@echo "  typescript-logs        - View TypeScript Frontend logs"
+	@echo "  go-logs                - View Go Frontend logs"
+	@echo "  react-build            - Build React Frontend Docker image"
+	@echo "  typescript-build       - Build TypeScript Frontend Docker image"
+	@echo "  go-build-docker        - Build Go Frontend Docker image"
+	@echo "  build-all-frontends    - Build all frontend Docker images"
+	@echo "  react-restart          - Restart React Frontend"
+	@echo "  typescript-restart     - Restart TypeScript Frontend"
+	@echo "  go-restart             - Restart Go Frontend"
+	@echo "  frontend-status        - Show status of all frontends"
 	@echo ""
 	@echo "IPv6 targets:"
-	@echo "  test-ipv6          - Run comprehensive IPv6 connectivity tests"
-	@echo "  check-ipv6-network - Check Docker network IPv6 configuration"
-	@echo "  verify-db-ipv6     - Verify PostgreSQL IPv6 listening"
-	@echo "  test-db-ipv6-host  - Test PostgreSQL connection via IPv6 from host"
-	@echo "  test-db-ipv4-host  - Test PostgreSQL connection via IPv4 from host"
-	@echo "  show-container-ips - Show all container IPv4/IPv6 addresses"
+	@echo "  test-ipv6              - Run comprehensive IPv6 connectivity tests"
+	@echo "  check-ipv6-network     - Check Docker network IPv6 configuration"
+	@echo "  verify-db-ipv6         - Verify PostgreSQL IPv6 listening"
+	@echo "  test-db-ipv6-host      - Test PostgreSQL connection via IPv6 from host"
+	@echo "  test-db-ipv4-host      - Test PostgreSQL connection via IPv4 from host"
+	@echo "  show-container-ips     - Show all container IPv4/IPv6 addresses"
 	@echo ""
 	@echo "Database targets:"
-	@echo "  db-shell-ipv6      - Connect to PostgreSQL via IPv6"
-	@echo "  db-shell-ipv4      - Connect to PostgreSQL via IPv4"
-	@echo "  db-shell-docker    - Connect to PostgreSQL inside Docker"
-	@echo "  migrate            - Run database migrations"
-	@echo "  rollback           - Rollback database migrations"
-	@echo "  create-db          - Create database"
-	@echo "  drop-db            - Drop database"
+	@echo "  db-shell-ipv6          - Connect to PostgreSQL via IPv6"
+	@echo "  db-shell-ipv4          - Connect to PostgreSQL via IPv4"
+	@echo "  db-shell-docker        - Connect to PostgreSQL inside Docker"
+	@echo "  migrate                - Run database migrations"
+	@echo "  rollback               - Rollback database migrations"
+	@echo "  create-db              - Create database"
+	@echo "  drop-db                - Drop database"
 	@echo ""
 	@echo "Other targets:"
-	@echo "  mock               - Generate all mocks"
-	@echo "  help               - Show this help message"
+	@echo "  mock                   - Generate all mocks"
+	@echo "  help                   - Show this help message"
 
 .PHONY: migrate rollback new-migration migrate-up create-db drop-db
 .PHONY: docker-up docker-down docker-restart docker-logs docker-ps
+.PHONY: react-start typescript-start go-start all-frontends-start
+.PHONY: react-stop typescript-stop go-stop
+.PHONY: react-logs typescript-logs go-logs
+.PHONY: react-build typescript-build go-build-docker build-all-frontends
+.PHONY: react-restart typescript-restart go-restart
+.PHONY: frontend-status
 .PHONY: test-ipv6 check-ipv6-network verify-db-ipv6 test-db-ipv6-host test-db-ipv4-host show-container-ips
 .PHONY: db-shell-ipv6 db-shell-ipv4 db-shell-docker help

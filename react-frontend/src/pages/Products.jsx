@@ -54,6 +54,44 @@ const Products = () => {
     navigate(`/product/${productId}`);
   };
 
+  const handleBuyNow = (e, product) => {
+    e.stopPropagation();
+
+    // Get existing cart from localStorage
+    const existingCart = localStorage.getItem('cart');
+    let cart = existingCart ? JSON.parse(existingCart) : [];
+
+    // Check if product already in cart
+    const existingItemIndex = cart.findIndex(item => item.id === product.id);
+
+    if (existingItemIndex >= 0) {
+      // Update quantity
+      cart[existingItemIndex].quantity += 1;
+      cart[existingItemIndex].totalPrice = cart[existingItemIndex].price * cart[existingItemIndex].quantity;
+    } else {
+      // Add new item
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        totalPrice: product.price,
+        image: product.image,
+        is_recurring: product.is_recurring,
+        plan_id: product.plan_id || '',
+      });
+    }
+
+    // Save to localStorage
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Dispatch custom event to update cart badge
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    // Navigate to cart
+    navigate('/cart');
+  };
+
   if (loading) {
     return (
       <Box
@@ -135,14 +173,30 @@ const Products = () => {
               />
 
               {/* Badges */}
-              <Box sx={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Box 
+                sx={{ 
+                  position: 'absolute', 
+                  top: 12, 
+                  left: 12, 
+                  right: 12, 
+                  display: 'flex', 
+                  gap: 1, 
+                  flexWrap: 'wrap',
+                  zIndex: 1,
+                }}
+              >
                 {product.is_recurring && (
                   <Chip
                     icon={<AutorenewIcon />}
                     label="Subscription"
                     color="warning"
                     size="small"
-                    sx={{ fontWeight: 600 }}
+                    sx={{ 
+                      fontWeight: 600,
+                      backgroundColor: 'rgba(255, 152, 0, 0.95)',
+                      color: 'white',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    }}
                   />
                 )}
                 {product.inventory_level !== undefined && product.inventory_level < 10 && (
@@ -151,14 +205,29 @@ const Products = () => {
                     label={`Only ${product.inventory_level} left!`}
                     color="error"
                     size="small"
-                    sx={{ fontWeight: 600 }}
+                    sx={{ 
+                      fontWeight: 600,
+                      backgroundColor: 'rgba(211, 47, 47, 0.95)',
+                      color: 'white',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    }}
                   />
                 )}
               </Box>
 
               {/* Product Info */}
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography gutterBottom variant="h5" component="h2" fontWeight="bold">
+              <CardContent sx={{ flexGrow: 1, pt: 2.5 }}>
+                <Typography 
+                  gutterBottom 
+                  variant="h5" 
+                  component="h2" 
+                  fontWeight="bold"
+                  sx={{ 
+                    minHeight: '64px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
                   {product.name}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -182,10 +251,7 @@ const Products = () => {
                   variant="contained"
                   size="small"
                   startIcon={<ShoppingCartIcon />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleProductClick(product.id);
-                  }}
+                  onClick={(e) => handleBuyNow(e, product)}
                 >
                   {product.is_recurring ? 'Subscribe' : 'Buy Now'}
                 </Button>
