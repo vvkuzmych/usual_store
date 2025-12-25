@@ -1,0 +1,120 @@
+.PHONY: help build-cli cli-help install-tools sqlc-generate
+
+## help: Display this help message
+help:
+	@echo "Available targets:"
+	@echo "  build-cli        - Build the CLI tool"
+	@echo "  cli-help         - Show CLI help"
+	@echo "  install-tools    - Install required tools (sqlc)"
+	@echo "  sqlc-generate    - Generate code from SQL queries"
+	@echo "  user-list        - List all users"
+	@echo "  user-create      - Create a new user (interactive)"
+	@echo "  db-status        - Check database status"
+	@echo "  db-seed          - Seed database with test data"
+	@echo "  health-check     - Run health checks"
+	@echo "  test-generate    - Generate test data"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make build-cli"
+	@echo "  make user-list"
+	@echo "  make db-seed"
+
+## build-cli: Build the CLI application
+build-cli:
+	@echo "Building Usual Store CLI..."
+	@go build -o bin/usual-store-cli cmd/cli/*.go
+	@echo "✓ CLI built successfully: bin/usual-store-cli"
+
+## cli-help: Show CLI help
+cli-help: build-cli
+	@./bin/usual-store-cli --help
+
+## install-tools: Install required development tools
+install-tools:
+	@echo "Installing tools..."
+	@echo "1. Installing sqlc..."
+	@go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@echo "✓ Tools installed successfully"
+
+## sqlc-generate: Generate Go code from SQL queries
+sqlc-generate:
+	@echo "Generating code from SQL queries..."
+	@sqlc generate
+	@echo "✓ Code generated in internal/db/"
+
+## User management commands
+user-list: build-cli
+	@./bin/usual-store-cli user list
+
+user-create: build-cli
+	@echo "Creating a new user..."
+	@./bin/usual-store-cli user create \
+		--first-name="$(FIRST_NAME)" \
+		--last-name="$(LAST_NAME)" \
+		--email="$(EMAIL)" \
+		--password="$(PASSWORD)"
+
+user-reset-password: build-cli
+	@./bin/usual-store-cli user reset-password \
+		--email="$(EMAIL)" \
+		--password="$(PASSWORD)"
+
+## Database commands
+db-status: build-cli
+	@./bin/usual-store-cli db status
+
+db-seed: build-cli
+	@./bin/usual-store-cli db seed --users=10 --widgets=5
+
+db-clear: build-cli
+	@./bin/usual-store-cli db clear --confirm
+
+## Health commands
+health-check: build-cli
+	@./bin/usual-store-cli health check --all
+
+health-stats: build-cli
+	@./bin/usual-store-cli health stats
+
+## Test commands
+test-generate: build-cli
+	@./bin/usual-store-cli test generate-data --scenario=checkout
+
+test-reset: build-cli
+	@./bin/usual-store-cli test reset --confirm
+
+## Docker commands
+docker-jaeger:
+	@echo "Starting Jaeger with docker-compose..."
+	@docker-compose up -d jaeger
+	@echo "✓ Jaeger UI: http://localhost:16686"
+
+docker-stop-jaeger:
+	@docker-compose stop jaeger
+
+## Quick start guide
+quickstart: install-tools build-cli
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════════╗"
+	@echo "║  Usual Store - Quick Start Complete!                         ║"
+	@echo "╚═══════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "1️⃣  CLI Tool:"
+	@echo "   ./bin/usual-store-cli --help"
+	@echo ""
+	@echo "2️⃣  Start Jaeger (for OpenTelemetry):"
+	@echo "   make docker-jaeger"
+	@echo "   Open: http://localhost:16686"
+	@echo ""
+	@echo "3️⃣  Generate database code (sqlc):"
+	@echo "   make sqlc-generate"
+	@echo ""
+	@echo "4️⃣  Run health check:"
+	@echo "   make health-check"
+	@echo ""
+	@echo "5️⃣  List users:"
+	@echo "   make user-list"
+	@echo ""
+	@echo "Ready to go! 🚀"
+	@echo ""
+

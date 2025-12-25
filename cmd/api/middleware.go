@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/google/uuid"
-	"golang.org/x/net/context"
+	"context"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 var failedAttempts = make(map[string]int)

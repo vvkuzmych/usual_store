@@ -31,6 +31,8 @@ Step-by-step instructions:
 - **[IPv6 Success Story](docs/guides/IPv6-SUCCESS.md)** - IPv6 implementation
 - **[AI Assistant README](docs/guides/AI-ASSISTANT-README.md)** - AI features
 - **[Kubernetes README](docs/guides/KUBERNETES-README.md)** - K8s quick start
+- **[Go Libraries Evaluation 2025](docs/guides/GO-LIBRARIES-EVALUATION-2025.md)** - Modern Go libraries analysis
+- **[Implementation Complete: 2025 Libraries](docs/guides/IMPLEMENTATION-COMPLETE-2025-LIBRARIES.md)** - 🆕 OpenTelemetry + sqlc + Cobra
 
 ### 🤖 [AI Assistant](docs/ai-assistant/)
 AI Shopping Assistant documentation:
@@ -74,6 +76,8 @@ High-level overviews:
 | **Use IPv6** | [Enable IPv6 NOW](docs/ipv6-docker-setup/ENABLE-IPv6-NOW.md) |
 | **Understand auth system** | [Authentication Setup](docs/setup/AUTHENTICATION-SETUP.md) |
 | **See what was built** | [Session Summary](docs/summaries/SESSION-COMPLETE-SUMMARY.md) |
+| **Improve Go codebase** | [Go Libraries 2025](docs/guides/GO-LIBRARIES-EVALUATION-2025.md) |
+| **Use implemented libraries** | [Implementation Guide](docs/guides/IMPLEMENTATION-COMPLETE-2025-LIBRARIES.md) |
 
 ---
 

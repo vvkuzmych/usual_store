@@ -2,13 +2,24 @@ package main
 
 import (
 	"net/http"
+	// "os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	// "go.opentelemetry.io/contrib/instrumentation/github.com/go-chi/chi/v5/otelchi"
 )
 
 func (app *application) routes() http.Handler {
 	mux := chi.NewRouter()
+
+	// Add OpenTelemetry middleware if enabled (temporarily disabled for certificate issues)
+	// if os.Getenv("OTEL_ENABLED") == "true" {
+	// 	serviceName := os.Getenv("OTEL_SERVICE_NAME")
+	// 	if serviceName == "" {
+	// 		serviceName = "usual-store-api"
+	// 	}
+	// 	mux.Use(otelchi.Middleware(serviceName, otelchi.WithChiRoutes(mux)))
+	// }
 
 	// Add TraceMiddleware as the first middleware
 	mux.Use(TraceMiddleware)
