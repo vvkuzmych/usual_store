@@ -14,6 +14,7 @@ import (
 	"time"
 	"usual_store/internal/driver"
 	"usual_store/internal/models"
+	// "usual_store/internal/telemetry"  // Temporarily disabled for certificate issues
 	"usual_store/pkg/repository"
 	"usual_store/pkg/service"
 )
@@ -43,12 +44,13 @@ type config struct {
 
 // application holds all the dependencies for the application
 type application struct {
-	config       config
-	infoLog      *log.Logger
-	errorLog     *log.Logger
-	version      string
-	DB           models.DBModel
-	tokenService service.TokenService
+	config            config
+	infoLog           *log.Logger
+	errorLog          *log.Logger
+	version           string
+	DB                models.DBModel
+	tokenService      service.TokenService
+	telemetryShutdown func(context.Context) error
 }
 
 // serve starts the HTTP server and handles graceful shutdown
@@ -79,6 +81,13 @@ func (app *application) serve() error {
 		// Create a context with a timeout for the shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+
+		// Shutdown telemetry first
+		if app.telemetryShutdown != nil {
+			if err := app.telemetryShutdown(ctx); err != nil {
+				app.errorLog.Printf("Error shutting down telemetry: %v", err)
+			}
+		}
 
 		// Attempt graceful shutdown
 		if err := srv.Shutdown(ctx); err != nil {
@@ -164,6 +173,30 @@ func main() {
 		// Initialize the repository with the database connection
 		repo := repository.NewDBModel(dbModel.DB)
 
+		// Initialize OpenTelemetry if enabled (temporarily disabled for certificate issues)
+		// var telemetryShutdown func(context.Context) error
+		// if os.Getenv("OTEL_ENABLED") == "true" {
+		// 	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+		// 	if otelEndpoint == "" {
+		// 		otelEndpoint = "localhost:4318"
+		// 	}
+
+		// 	otelCfg := telemetry.Config{
+		// 		ServiceName:    getEnvOrDefault("OTEL_SERVICE_NAME", "usual-store-api"),
+		// 		ServiceVersion: getEnvOrDefault("OTEL_SERVICE_VERSION", version),
+		// 		Environment:    getEnvOrDefault("OTEL_ENVIRONMENT", cfg.env),
+		// 		OTLPEndpoint:   otelEndpoint,
+		// 	}
+
+		// 	shutdown, err := telemetry.InitTracer(otelCfg)
+		// 	if err != nil {
+		// 		errorLog.Printf("Failed to initialize OpenTelemetry: %v", err)
+		// 	} else {
+		// 		infoLog.Printf("OpenTelemetry initialized successfully (endpoint: %s)", otelEndpoint)
+		// 		telemetryShutdown = shutdown
+		// 	}
+		// }
+
 		// Initialize application with the repository
 		app := &application{
 			config:   cfg,
@@ -173,7 +206,8 @@ func main() {
 			DB: models.DBModel{
 				DB: dbModel.DB,
 			},
-			tokenService: *service.NewTokenService(repo),
+			tokenService:      *service.NewTokenService(repo),
+			telemetryShutdown: nil, // Temporarily disabled
 		}
 
 		// Start the server
@@ -196,6 +230,14 @@ func mustGetEnv(key string) string {
 		log.Fatalf("%s is not set in .env file", key)
 	}
 	return value
+}
+
+// getEnvOrDefault retrieves an environment variable or returns a default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // mustParseEnvInt retrieves an environment variable and parses it as an integer.
