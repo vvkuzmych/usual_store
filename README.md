@@ -31,12 +31,12 @@ All setup and configuration guides:
 
 Documentation for the AI Shopping Assistant feature:
 
-- **[AI Assistant Overview](ai-assistant/AI-ASSISTANT-OVERVIEW.md)** - Features, architecture, and use cases
-- **[Quick Start Guide](ai-assistant/QUICK-START.md)** - Get AI assistant running locally
-- **[Frontend Integration](ai-assistant/FRONTEND-INTEGRATION.md)** - React, Vue, and vanilla JS examples
-- **[Docker Deployment](ai-assistant/DOCKER-DEPLOYMENT.md)** - Containerized deployment
-- **[Kubernetes Deployment](ai-assistant/KUBERNETES-AI-DEPLOYMENT.md)** - K8s manifests and configuration
-- **[Integration Examples](ai-assistant/INTEGRATION-EXAMPLES.md)** - Various integration methods
+- **[AI Assistant Overview](docs/ai-assistant/AI-ASSISTANT-OVERVIEW.md)** - Features, architecture, and use cases
+- **[Quick Start Guide](docs/ai-assistant/QUICK-START.md)** - Get AI assistant running locally
+- **[Frontend Integration](docs/ai-assistant/FRONTEND-INTEGRATION.md)** - React, Vue, and vanilla JS examples
+- **[Docker Deployment](docs/ai-assistant/DOCKER-DEPLOYMENT.md)** - Containerized deployment
+- **[Kubernetes Deployment](docs/ai-assistant/KUBERNETES-AI-DEPLOYMENT.md)** - K8s manifests and configuration
+- **[Integration Examples](docs/ai-assistant/INTEGRATION-EXAMPLES.md)** - Various integration methods
 - **[Main README](guides/AI-ASSISTANT-README.md)** - High-level overview
 
 ---
@@ -148,7 +148,7 @@ docs/
 → [React Frontend Setup](setup/REACT-FRONTEND-SETUP.md)
 
 **...enable the AI assistant**
-→ [AI Quick Start](ai-assistant/QUICK-START.md)
+→ [AI Quick Start](docs/ai-assistant/QUICK-START.md)
 
 **...deploy to Kubernetes**
 → [K8s Getting Started](kubernetes/GETTING-STARTED.md)

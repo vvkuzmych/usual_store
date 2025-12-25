@@ -135,7 +135,7 @@ func (s *Service) getOrCreateConversation(sessionID string, userID *int) (*Conve
 	                 resulted_in_purchase, total_tokens_used, total_cost, user_agent, 
 	                 ip_address, created_at, updated_at
 	          FROM ai_conversations WHERE session_id = $1`
-	
+
 	var conv Conversation
 	err := s.db.QueryRow(query, sessionID).Scan(
 		&conv.ID, &conv.SessionID, &conv.UserID, &conv.StartedAt, &conv.EndedAt,
@@ -407,4 +407,3 @@ func (s *Service) GetConversationStats(days int) (map[string]interface{}, error)
 
 	return stats, nil
 }
-

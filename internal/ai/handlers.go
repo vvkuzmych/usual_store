@@ -53,7 +53,7 @@ func (h *Handler) HandleChatRequest(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.HandleChat(req)
 	if err != nil {
 		h.logger.Printf("Error handling chat: %v", err)
-		
+
 		// Check if it's an OpenAI API key error
 		errMsg := err.Error()
 		if contains(errMsg, "Incorrect API key") || contains(errMsg, "dummy-key") {
@@ -66,7 +66,7 @@ func (h *Handler) HandleChatRequest(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		
+
 		http.Error(w, "Failed to process message", http.StatusInternalServerError)
 		return
 	}
@@ -98,7 +98,7 @@ func (h *Handler) HandleFeedback(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"status": "success",
+		"status":  "success",
 		"message": "Thank you for your feedback!",
 	})
 }
@@ -157,4 +157,3 @@ func (h *Handler) EnableCORS(next http.HandlerFunc) http.HandlerFunc {
 func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
-

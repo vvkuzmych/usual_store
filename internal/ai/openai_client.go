@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	OpenAIAPIURL = "https://api.openai.com/v1/chat/completions"
+	OpenAIAPIURL       = "https://api.openai.com/v1/chat/completions"
 	OpenAIEmbeddingURL = "https://api.openai.com/v1/embeddings"
 )
 
 // OpenAIClient implements AIClient interface
 type OpenAIClient struct {
 	APIKey      string
-	Model       string  // "gpt-4", "gpt-3.5-turbo", etc.
+	Model       string // "gpt-4", "gpt-3.5-turbo", etc.
 	Temperature float64
 	MaxTokens   int
 	HTTPClient  *http.Client
@@ -45,10 +45,10 @@ func NewOpenAIClient(apiKey, model string, temperature float64) *OpenAIClient {
 
 // OpenAI API request/response structures
 type openAIRequest struct {
-	Model       string             `json:"model"`
-	Messages    []openAIMessage    `json:"messages"`
-	Temperature float64            `json:"temperature"`
-	MaxTokens   int                `json:"max_tokens,omitempty"`
+	Model       string          `json:"model"`
+	Messages    []openAIMessage `json:"messages"`
+	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens,omitempty"`
 }
 
 type openAIMessage struct {
@@ -253,9 +253,9 @@ func (c *OpenAIClient) extractProductsFromResponse(content string) []Recommended
 	// This is a simple implementation
 	// In production, you'd parse the content more intelligently or have the AI return structured data
 	products := []RecommendedProduct{}
-	
+
 	// TODO: Implement proper product extraction or use function calling feature of GPT-4
-	
+
 	return products
 }
 
@@ -267,9 +267,9 @@ func (c *OpenAIClient) generateSuggestions(content string) []string {
 		"What other options do you have?",
 		"What's your best deal?",
 	}
-	
+
 	// TODO: Make this smarter based on conversation context
-	
+
 	return suggestions
 }
 
@@ -278,7 +278,7 @@ func (c *OpenAIClient) CalculateCost(tokens int) float64 {
 	// Pricing as of 2024 (adjust as needed)
 	// GPT-3.5-turbo: $0.0015 per 1K input tokens, $0.002 per 1K output tokens
 	// GPT-4: $0.03 per 1K input tokens, $0.06 per 1K output tokens
-	
+
 	var costPer1K float64
 	switch c.Model {
 	case "gpt-4", "gpt-4-0613":
@@ -288,7 +288,6 @@ func (c *OpenAIClient) CalculateCost(tokens int) float64 {
 	default:
 		costPer1K = 0.00175
 	}
-	
+
 	return float64(tokens) / 1000.0 * costPer1K
 }
-
