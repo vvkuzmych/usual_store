@@ -232,14 +232,6 @@ func mustGetEnv(key string) string {
 	return value
 }
 
-// getEnvOrDefault retrieves an environment variable or returns a default value
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
 // mustParseEnvInt retrieves an environment variable and parses it as an integer.
 func mustParseEnvInt(key string) int {
 	value := os.Getenv(key)

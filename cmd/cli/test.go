@@ -153,6 +153,9 @@ func generateSubscriptionScenario(db *sql.DB) {
 	// Create subscription products
 	query := `INSERT INTO widgets (name, description, price, inventory_level, image, is_recurring, plan_id) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	db.Exec(query, "Monthly Plan", "Test monthly subscription", 999, 999, "/static/plan.png", true, "price_test_monthly")
+	if _, err := db.Exec(query, "Monthly Plan", "Test monthly subscription", 999, 999, "/static/plan.png", true, "price_test_monthly"); err != nil {
+		fmt.Printf("Error creating subscription product: %v\n", err)
+		return
+	}
 	fmt.Println("✓ Subscription scenario ready")
 }

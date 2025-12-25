@@ -57,23 +57,35 @@ var healthStatsCmd = &cobra.Command{
 
 		// Count users
 		var userCount int
-		db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
-		fmt.Printf("👥 Users: %d\n", userCount)
+		if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount); err != nil {
+			fmt.Printf("Error getting user count: %v\n", err)
+		} else {
+			fmt.Printf("👥 Users: %d\n", userCount)
+		}
 
 		// Count widgets
 		var widgetCount int
-		db.QueryRow("SELECT COUNT(*) FROM widgets").Scan(&widgetCount)
-		fmt.Printf("📦 Widgets: %d\n", widgetCount)
+		if err := db.QueryRow("SELECT COUNT(*) FROM widgets").Scan(&widgetCount); err != nil {
+			fmt.Printf("Error getting widget count: %v\n", err)
+		} else {
+			fmt.Printf("📦 Widgets: %d\n", widgetCount)
+		}
 
 		// Count orders
 		var orderCount int
-		db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&orderCount)
-		fmt.Printf("🛒 Orders: %d\n", orderCount)
+		if err := db.QueryRow("SELECT COUNT(*) FROM orders").Scan(&orderCount); err != nil {
+			fmt.Printf("Error getting order count: %v\n", err)
+		} else {
+			fmt.Printf("🛒 Orders: %d\n", orderCount)
+		}
 
 		// Count transactions
 		var transactionCount int
-		db.QueryRow("SELECT COUNT(*) FROM transactions").Scan(&transactionCount)
-		fmt.Printf("💳 Transactions: %d\n", transactionCount)
+		if err := db.QueryRow("SELECT COUNT(*) FROM transactions").Scan(&transactionCount); err != nil {
+			fmt.Printf("Error getting transaction count: %v\n", err)
+		} else {
+			fmt.Printf("💳 Transactions: %d\n", transactionCount)
+		}
 
 		// Latest order
 		var latestOrderTime time.Time

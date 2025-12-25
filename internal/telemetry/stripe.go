@@ -11,7 +11,7 @@ import (
 // TraceStripeOperation traces a Stripe API call
 func TraceStripeOperation(ctx context.Context, operation string, fn func() error) error {
 	tracer := Tracer("stripe.client")
-	ctx, span := tracer.Start(ctx, "stripe."+operation)
+	_, span := tracer.Start(ctx, "stripe."+operation)
 	defer span.End()
 
 	span.SetAttributes(
@@ -38,7 +38,7 @@ func TraceStripeOperation(ctx context.Context, operation string, fn func() error
 // TraceStripeOperationWithResult traces a Stripe API call that returns a result
 func TraceStripeOperationWithResult[T any](ctx context.Context, operation string, fn func() (T, error)) (T, error) {
 	tracer := Tracer("stripe.client")
-	ctx, span := tracer.Start(ctx, "stripe."+operation)
+	_, span := tracer.Start(ctx, "stripe."+operation)
 	defer span.End()
 
 	span.SetAttributes(
