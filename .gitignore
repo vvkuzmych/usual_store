@@ -1,5 +1,6 @@
 .idea
 .env
+.env.backup
 dist
 tmp
 static/.DS_Store
