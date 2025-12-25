@@ -24,7 +24,10 @@ func (app *application) routes() http.Handler {
 	}))
 
 	mux.Post("/api/payment-intent", app.GetPaymentIntent)
+	mux.Get("/api/widgets", app.GetAllWidgets)
+	mux.Get("/api/products", app.GetAllWidgets) // Alias for /api/widgets
 	mux.Get("/api/widgets/{id}", app.GetWidgetByID)
+	mux.Get("/api/product/{id}", app.GetWidgetByID) // Alias for /api/widgets/{id}
 	mux.Post("/api/create-customer-and-subscribe-to-plan", app.CreateCustomerAndSubscribeToPlan)
 
 	mux.Post("/api/authenticate", app.CreateAuthToken)

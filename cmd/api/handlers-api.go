@@ -116,6 +116,30 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GetAllWidgets get all widgets/products
+func (app *application) GetAllWidgets(w http.ResponseWriter, r *http.Request) {
+	widgets, err := app.DB.GetAllWidgets()
+	if err != nil {
+		app.errorLog.Println(err)
+		http.Error(w, "Failed to retrieve products", http.StatusInternalServerError)
+		return
+	}
+
+	out, err := json.MarshalIndent(widgets, "", "  ")
+	if err != nil {
+		app.errorLog.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set(contentType, applicationJson)
+	_, err = w.Write(out)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
 // GetWidgetByID get widget by id
 func (app *application) GetWidgetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

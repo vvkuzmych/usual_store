@@ -33,7 +33,8 @@ services:
       - REACT_APP_API_URL=http://back-end:4001
       - REACT_APP_AI_API_URL=http://ai-assistant:8080
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"  # IPv4 localhost binding
+      - "[::1]:3000:3000"      # IPv6 localhost binding (Docker Desktop 4.42+ supports this!)
     networks:
       - usualstore_network
     depends_on:
@@ -56,7 +57,8 @@ services:
     environment:
       - VITE_API_URL=http://back-end:4001
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"  # IPv4 localhost binding
+      - "[::1]:3001:3001"      # IPv6 localhost binding (Docker Desktop 4.42+ supports this!)
     networks:
       - usualstore_network
     depends_on:
@@ -70,6 +72,29 @@ services:
       start_period: 10s
     profiles:
       - typescript-frontend
+
+  redux-frontend:
+    build:
+      context: ./react-redux-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3002:3002"  # IPv4 localhost binding
+      - "[::1]:3002:3002"      # IPv6 localhost binding (Docker Desktop 4.42+ supports this!)
+    environment:
+      - VITE_API_URL=http://localhost:4000
+      - NODE_ENV=production
+    networks:
+      - usualstore_network
+    depends_on:
+      - back-end
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - redux-frontend
 
   invoice:
     build:

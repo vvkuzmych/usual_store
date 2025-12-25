@@ -50,3 +50,43 @@ func (m *DBModel) GetWidget(id int) (Widget, error) {
 	}
 	return widget, nil
 }
+
+// GetAllWidgets retrieves all widgets from the database.
+func (m *DBModel) GetAllWidgets() ([]Widget, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	stmt := `SELECT id, name, description, inventory_level, price, image, is_recurring, plan_id, created_at, updated_at FROM widgets ORDER BY id`
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var widgets []Widget
+	for rows.Next() {
+		var widget Widget
+		err := rows.Scan(
+			&widget.ID,
+			&widget.Name,
+			&widget.Description,
+			&widget.InventoryLevel,
+			&widget.Price,
+			&widget.Image,
+			&widget.IsRecurring,
+			&widget.PlanID,
+			&widget.CreatedAt,
+			&widget.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		widgets = append(widgets, widget)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return widgets, nil
+}

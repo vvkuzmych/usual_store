@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -12,6 +12,7 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  Badge,
 } from '@mui/material';
 import {
   ShoppingCart as ShoppingCartIcon,
@@ -21,7 +22,36 @@ import {
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
+
+  // Load cart count from localStorage
+  const updateCartCount = () => {
+    const existingCart = localStorage.getItem('cart');
+    if (existingCart) {
+      const cart = JSON.parse(existingCart);
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      setCartItemsCount(totalItems);
+    } else {
+      setCartItemsCount(0);
+    }
+  };
+
+  useEffect(() => {
+    // Initial load
+    updateCartCount();
+
+    // Listen for storage events (cart updates from other tabs/windows)
+    window.addEventListener('storage', updateCartCount);
+
+    // Listen for custom cart update event
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -104,7 +134,18 @@ const Header = () => {
                 },
               }}
             >
-              <ShoppingCartIcon />
+              <Badge 
+                badgeContent={cartItemsCount} 
+                color="error"
+                sx={{
+                  '& .MuiBadge-badge': {
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                  },
+                }}
+              >
+                <ShoppingCartIcon />
+              </Badge>
             </IconButton>
 
             {isAuthenticated() ? (
