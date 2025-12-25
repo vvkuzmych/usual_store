@@ -60,10 +60,12 @@ func (h *Handler) HandleChatRequest(w http.ResponseWriter, r *http.Request) {
 			// Return user-friendly message for missing API key
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(map[string]string{
+			if err := json.NewEncoder(w).Encode(map[string]string{
 				"error":   "AI assistant not configured",
 				"message": "Hi! The AI assistant is running but needs an OpenAI API key to respond. For now, I can help you browse our products! Try clicking on 'Products' in the menu above.",
-			})
+			}); err != nil {
+				h.logger.Printf("Error encoding error response: %v", err)
+			}
 			return
 		}
 
@@ -73,7 +75,10 @@ func (h *Handler) HandleChatRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 // HandleFeedback handles POST /api/ai/feedback
@@ -97,10 +102,12 @@ func (h *Handler) HandleFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status":  "success",
 		"message": "Thank you for your feedback!",
-	})
+	}); err != nil {
+		h.logger.Printf("Error encoding feedback response: %v", err)
+	}
 }
 
 // HandleStats handles GET /api/ai/stats

@@ -275,10 +275,7 @@ func (s *Service) getUserPreferences(userID *int, sessionID *string) (*UserPrefe
 		return nil, err
 	}
 
-	// Parse arrays (simplified)
-	if categories.Valid {
-		// TODO: Parse PostgreSQL array format
-	}
+	// TODO: Parse PostgreSQL array format for categories if needed in the future
 
 	return &prefs, nil
 }
