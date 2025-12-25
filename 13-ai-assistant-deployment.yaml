@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-assistant
+  namespace: usualstore
+spec:
+  replicas: 2  # High availability with 2 replicas
+  selector:
+    matchLabels:
+      app: ai-assistant
+  template:
+    metadata:
+      labels:
+        app: ai-assistant
+    spec:
+      initContainers:
+      # Wait for database to be ready
+      - name: wait-for-db
+        image: postgres:15
+        command:
+          - sh
+          - -c
+          - |
+            until pg_isready -h database -U postgres -d usualstore; do
+              echo "Waiting for database..."
+              sleep 2
+            done
+            echo "Database is ready!"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DB_PASSWORD
+      containers:
+      - name: ai-assistant
+        # Replace with your actual image
+        # image: YOUR_DOCKERHUB_USERNAME/usualstore-ai-assistant:latest
+        image: usualstore-ai-assistant:latest
+        imagePullPolicy: IfNotPresent  # Change to Always for production
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: usualstore-secrets
+              key: DATABASE_DSN
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-assistant-secrets
+              key: OPENAI_API_KEY
+        - name: PORT
+          value: "8080"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+

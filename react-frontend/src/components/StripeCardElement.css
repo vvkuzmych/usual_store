@@ -1,0 +1,46 @@
+.stripe-card-wrapper {
+  width: 100%;
+}
+
+.stripe-card-element {
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.3s ease;
+  min-height: 44px;
+}
+
+.stripe-card-element:focus-within {
+  border-color: #6a11cb;
+  box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
+}
+
+.stripe-card-element.StripeElement--invalid {
+  border-color: #dc3545;
+}
+
+.stripe-card-element.StripeElement--complete {
+  border-color: #28a745;
+}
+
+.card-error {
+  color: #dc3545;
+  font-size: 0.875em;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8d7da;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
+}
+
+.card-success {
+  color: #28a745;
+  font-size: 0.875em;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #d4edda;
+  border-radius: 6px;
+  border: 1px solid #c3e6cb;
+}
+

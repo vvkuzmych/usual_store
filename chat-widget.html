@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Shopping Assistant - Demo</title>
+    <link rel="stylesheet" href="chat-widget.css">
+</head>
+<body>
+    <div style="padding: 40px; max-width: 800px; margin: 0 auto;">
+        <h1>🛍️ Welcome to Usual Store</h1>
+        <p>Browse our products and chat with our AI assistant for help!</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 30px;">
+            <div style="border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                <h3>Widget</h3>
+                <p>A very nice widget</p>
+                <p style="font-size: 24px; color: #007bff; font-weight: bold;">$10</p>
+            </div>
+            <div style="border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                <h3>Golden Plan</h3>
+                <p>Subscription with benefits</p>
+                <p style="font-size: 24px; color: #007bff; font-weight: bold;">$30/mo</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Widget -->
+    <div id="chat-widget-container"></div>
+
+    <script src="chat-widget.js"></script>
+    <script>
+        // Initialize chat widget
+        const chatWidget = new ChatWidget({
+            apiUrl: 'http://localhost:8080',
+            position: 'bottom-right',
+            theme: 'blue'
+        });
+    </script>
+</body>
+</html>
+

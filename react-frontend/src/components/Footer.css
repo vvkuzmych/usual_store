@@ -1,0 +1,17 @@
+.footer {
+  background-color: #2d3748;
+  color: white;
+  padding: 2rem 0;
+  margin-top: auto;
+  text-align: center;
+}
+
+.footer p {
+  margin: 0.5rem 0;
+}
+
+.footer-subtitle {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
