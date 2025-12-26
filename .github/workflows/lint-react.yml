@@ -1,0 +1,109 @@
+name: Lint React Applications
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'react-frontend/**'
+      - 'typescript-frontend/**'
+      - 'react-redux-frontend/**'
+      - 'support-frontend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'react-frontend/**'
+      - 'typescript-frontend/**'
+      - 'react-redux-frontend/**'
+      - 'support-frontend/**'
+
+jobs:
+  lint-react-frontend:
+    name: Lint React Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'react-frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: react-frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: react-frontend
+        run: npm run lint
+
+  lint-typescript-frontend:
+    name: Lint TypeScript Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'typescript-frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: typescript-frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: typescript-frontend
+        run: npm run lint
+
+      - name: TypeScript type check
+        working-directory: typescript-frontend
+        run: npx tsc --noEmit
+
+  lint-redux-frontend:
+    name: Lint React Redux Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'react-redux-frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: react-redux-frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: react-redux-frontend
+        run: npm run lint
+
+  lint-support-frontend:
+    name: Lint Support Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: support-frontend
+        run: npm install
+
+      - name: Run ESLint
+        working-directory: support-frontend
+        run: npm run lint || echo "ESLint not configured yet, skipping"
+

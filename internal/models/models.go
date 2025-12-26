@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // DBModel represents a model with a database connection.
@@ -83,6 +84,7 @@ type User struct {
 	LastName  string    `json:"last_name"`
 	Email     string    `json:"email"`
 	Password  string    `json:"password"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
 }
@@ -243,13 +245,14 @@ func (m *DBModel) GetUserByEmail(email string) (User, error) {
 	email = strings.ToLower(email)
 	var user User
 	// Update query to use $1 for parameterized query in PostgreSQL
-	row := m.DB.QueryRowContext(ctx, `SELECT id, first_name, last_name, email, password, created_at, updated_at FROM users WHERE email=$1`, email)
+	row := m.DB.QueryRowContext(ctx, `SELECT id, first_name, last_name, email, password, role, created_at, updated_at FROM users WHERE email=$1`, email)
 	err := row.Scan(
 		&user.ID,
 		&user.FirstName,
 		&user.LastName,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -502,7 +505,7 @@ func (m *DBModel) GetUserByID(id int) (User, error) {
 	defer cancel()
 	var user User
 
-	query := `SELECT id, first_name, last_name, email, password, created_at FROM users WHERE id = $1`
+	query := `SELECT id, first_name, last_name, email, password, role, created_at, updated_at FROM users WHERE id = $1`
 	row := m.DB.QueryRowContext(ctx, query, id)
 	err := row.Scan(
 		&user.ID,
@@ -510,9 +513,14 @@ func (m *DBModel) GetUserByID(id int) (User, error) {
 		&user.LastName,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return user, fmt.Errorf("no user found with ID %d", id)
+		}
 		return user, err
 	}
 	return user, nil
@@ -537,10 +545,16 @@ func (m *DBModel) AddUser(user User, hash string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	stmt := `INSERT INTO users (first_name, last_name, email, password, created_at, updated_at)
-			 VALUES ($1, $2, $3, $4, $5, $6)`
+	// Default role to 'user' if not specified
+	role := user.Role
+	if role == "" {
+		role = "user"
+	}
 
-	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, hash, time.Now(), time.Now())
+	stmt := `INSERT INTO users (first_name, last_name, email, password, role, created_at, updated_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err := m.DB.ExecContext(ctx, stmt, user.FirstName, user.LastName, user.Email, hash, role, time.Now(), time.Now())
 
 	if err != nil {
 		return err
@@ -559,11 +573,80 @@ func (m *DBModel) DeleteUser(id int) error {
 		return err
 	}
 
-	stmt = `DELETE FROM tokens WHERE id = $1`
+	stmt = `DELETE FROM tokens WHERE user_id = $1`
 	_, err = m.DB.ExecContext(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// GetAllUsersPaginated returns paginated list of all users
+func (m *DBModel) GetAllUsersPaginated(offset, limit int) ([]User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at 
+			  FROM users 
+			  ORDER BY 
+			    CASE role
+			      WHEN 'super_admin' THEN 1
+			      WHEN 'admin' THEN 2
+			      WHEN 'supporter' THEN 3
+			      ELSE 4
+			    END, id
+			  LIMIT $1 OFFSET $2`
+
+	rows, err := m.DB.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.ID,
+			&user.FirstName,
+			&user.LastName,
+			&user.Email,
+			&user.Role,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+// GetUserCount returns the total count of users
+func (m *DBModel) GetUserCount() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var count int
+	err := m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetSuperAdminCount returns the count of super_admin users
+func (m *DBModel) GetSuperAdminCount() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var count int
+	err := m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE role = 'super_admin'`).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

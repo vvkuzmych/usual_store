@@ -6,3 +6,4 @@ tmp
 static/.DS_Store
 vendor
 react-redux-frontend/node_modules
+react-frontend/node_modules

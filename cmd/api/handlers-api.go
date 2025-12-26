@@ -429,13 +429,23 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var payload struct {
-		Error   bool          `json:"error"`
-		Message string        `json:"message"`
-		Token   *models.Token `json:"authentication_token"`
+		Error     bool          `json:"error"`
+		Message   string        `json:"message"`
+		Token     *models.Token `json:"authentication_token"`
+		ID        int           `json:"id"`
+		FirstName string        `json:"first_name"`
+		LastName  string        `json:"last_name"`
+		Email     string        `json:"email"`
+		Role      string        `json:"role"`
 	}
 	payload.Error = false
 	payload.Message = fmt.Sprintf("Token for user %s created.", userInput.Email)
 	payload.Token = token
+	payload.ID = user.ID
+	payload.FirstName = user.FirstName
+	payload.LastName = user.LastName
+	payload.Email = user.Email
+	payload.Role = user.Role
 	_ = app.writeJSON(w, http.StatusOK, payload)
 }
 
@@ -1119,6 +1129,259 @@ func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	resp.Error = false
 	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// GetAllUsers returns paginated list of all users (super_admin only)
+func (app *application) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	page := 1
+	pageSize := 10
+
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if sizeStr := r.URL.Query().Get("page_size"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 && s <= 100 {
+			pageSize = s
+		}
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	totalCount, err := app.DB.GetUserCount()
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get paginated users
+	users, err := app.DB.GetAllUsersPaginated(offset, pageSize)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + pageSize - 1) / pageSize
+
+	var resp struct {
+		Error      bool          `json:"error"`
+		Users      []models.User `json:"users"`
+		TotalCount int           `json:"total_count"`
+		Page       int           `json:"page"`
+		PageSize   int           `json:"page_size"`
+		TotalPages int           `json:"total_pages"`
+	}
+	resp.Error = false
+	resp.Users = users
+	resp.TotalCount = totalCount
+	resp.Page = page
+	resp.PageSize = pageSize
+	resp.TotalPages = totalPages
+
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// DeleteUserByID deletes a user (with super_admin protection)
+func (app *application) DeleteUserByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	userID, err := strconv.Atoi(idStr)
+	if err != nil {
+		err = app.badRequest(w, r, errors.New("invalid user ID"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get user to check if super_admin
+	userToDelete, err := app.DB.GetUserByID(userID)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// If trying to delete super_admin, check count
+	if userToDelete.Role == "super_admin" {
+		superAdminCount, err := app.DB.GetSuperAdminCount()
+		if err != nil {
+			err = app.badRequest(w, r, err)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
+			return
+		}
+
+		if superAdminCount < 2 {
+			err = app.badRequest(w, r, errors.New("cannot delete the last super admin"))
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
+			return
+		}
+	}
+
+	err = app.DB.DeleteUser(userID)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	resp.Error = false
+	resp.Message = "User deleted successfully"
+
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// CreateUser creates a new user account
+func (app *application) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Password  string `json:"password"`
+		Role      string `json:"role"` // Optional: admin, supporter, or user (default)
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate input
+	if payload.Email == "" || payload.Password == "" || payload.FirstName == "" || payload.LastName == "" {
+		err = app.badRequest(w, r, errors.New("all fields are required"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate role if provided
+	validRoles := map[string]bool{
+		"super_admin": true,
+		"admin":       true,
+		"supporter":   true,
+		"user":        true,
+	}
+
+	if payload.Role != "" && !validRoles[payload.Role] {
+		err = app.badRequest(w, r, errors.New("role must be 'super_admin', 'admin', 'supporter', or 'user'"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Default to 'supporter' if role not specified (for support staff creation)
+	if payload.Role == "" {
+		payload.Role = "supporter"
+	}
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Create user
+	user := models.User{
+		FirstName: payload.FirstName,
+		LastName:  payload.LastName,
+		Email:     payload.Email,
+		Role:      payload.Role,
+	}
+
+	err = app.DB.AddUser(user, string(hashedPassword))
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get the created user to return the ID
+	createdUser, err := app.DB.GetUserByEmail(payload.Email)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Error     bool   `json:"error"`
+		Message   string `json:"message"`
+		ID        int    `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Role      string `json:"role"`
+	}
+	resp.Error = false
+	resp.Message = "User created successfully"
+	resp.ID = createdUser.ID
+	resp.FirstName = createdUser.FirstName
+	resp.LastName = createdUser.LastName
+	resp.Email = createdUser.Email
+	resp.Role = createdUser.Role
+
+	err = app.writeJSON(w, http.StatusCreated, resp)
 	if err != nil {
 		app.errorLog.Println(err)
 		return

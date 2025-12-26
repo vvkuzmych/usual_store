@@ -1,27 +1,25 @@
 {
-  "name": "usual-store-react",
+  "name": "support-frontend",
   "version": "1.0.0",
-  "description": "Usual Store React Frontend",
   "private": true,
+  "description": "Live Support Chat Frontend",
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.19",
+    "@mui/material": "^5.14.19",
+    "axios": "^1.6.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "react-scripts": "5.0.1"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint src/**/*.{js,jsx}"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.6.2",
-    "@mui/material": "^5.15.0",
-    "@mui/icons-material": "^5.15.0",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@stripe/stripe-js": "^2.4.0",
-    "@stripe/react-stripe-js": "^2.4.0"
   },
   "eslintConfig": {
     "extends": [
@@ -40,6 +38,6 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://back-end:4001"
+  "proxy": "http://localhost:5000"
 }
 
