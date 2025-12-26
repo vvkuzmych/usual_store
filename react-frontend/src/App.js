@@ -15,6 +15,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ResetPassword from './pages/ResetPassword';
 import ChatWidget from './components/ChatWidget';
+import SupportChatWidget from './components/SupportChatWidget';
 
 function App() {
   return (
@@ -38,8 +39,11 @@ function App() {
             </main>
             <Footer />
             
-            {/* AI Chat Widget - Uses relative URLs through Nginx proxy */}
+            {/* AI Chat Widget - Right side (Uses relative URLs through Nginx proxy) */}
             <ChatWidget />
+            
+            {/* Live Support Chat Widget - Left side */}
+            <SupportChatWidget />
           </div>
         </Router>
       </AuthProvider>

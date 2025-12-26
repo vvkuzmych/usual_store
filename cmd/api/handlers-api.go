@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"usual_store/internal/cards"
+	"usual_store/internal/messaging"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
 	"usual_store/internal/validator"
@@ -429,13 +430,23 @@ func (app *application) CreateAuthToken(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var payload struct {
-		Error   bool          `json:"error"`
-		Message string        `json:"message"`
-		Token   *models.Token `json:"authentication_token"`
+		Error     bool          `json:"error"`
+		Message   string        `json:"message"`
+		Token     *models.Token `json:"authentication_token"`
+		ID        int           `json:"id"`
+		FirstName string        `json:"first_name"`
+		LastName  string        `json:"last_name"`
+		Email     string        `json:"email"`
+		Role      string        `json:"role"`
 	}
 	payload.Error = false
 	payload.Message = fmt.Sprintf("Token for user %s created.", userInput.Email)
 	payload.Token = token
+	payload.ID = user.ID
+	payload.FirstName = user.FirstName
+	payload.LastName = user.LastName
+	payload.Email = user.Email
+	payload.Role = user.Role
 	_ = app.writeJSON(w, http.StatusOK, payload)
 }
 
@@ -473,33 +484,33 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 	if authHeader == "" {
 		fmt.Println("no header", authHeader)
 
-		return nil, errors.New("Missing Authorization header")
+		return nil, errors.New("missing authorization header")
 	}
 
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" || headerParts[1] == "" {
 		fmt.Println(" invalid header", authHeader)
 
-		return nil, errors.New("Invalid Authorization header")
+		return nil, errors.New("invalid authorization header")
 	}
 
 	tokenString := headerParts[1]
 	if tokenString == "" {
 		fmt.Println("token empty", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - no token found")
+		return nil, errors.New("invalid authorization header: no token found")
 	}
 	if len(tokenString) != 26 {
 		fmt.Println("wrong length", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - wrong length")
+		return nil, errors.New("invalid authorization header: wrong length")
 	}
 
 	user, err := app.tokenService.GetUserForToken(ctx, tokenString)
 	if err != nil {
 		fmt.Println("token not found", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - matching token not found")
+		return nil, errors.New("invalid authorization header: matching token not found")
 	}
 
 	return user, nil
@@ -1118,6 +1129,348 @@ func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 	}
 	resp.Error = false
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// GetAllUsers returns paginated list of all users (super_admin only)
+func (app *application) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters
+	page := 1
+	pageSize := 10
+	search := r.URL.Query().Get("search")
+	sortBy := r.URL.Query().Get("sort_by")
+	sortOrder := r.URL.Query().Get("sort_order")
+
+	// Default sort values
+	if sortBy == "" {
+		sortBy = "id"
+	}
+	if sortOrder == "" {
+		sortOrder = "asc"
+	}
+
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if sizeStr := r.URL.Query().Get("page_size"); sizeStr != "" {
+		if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 && s <= 100 {
+			pageSize = s
+		}
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count (with search filter if provided)
+	totalCount, err := app.DB.GetUserCount(search)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get paginated users with search and sort
+	users, err := app.DB.GetAllUsersPaginated(offset, pageSize, search, sortBy, sortOrder)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (totalCount + pageSize - 1) / pageSize
+
+	var resp struct {
+		Error      bool          `json:"error"`
+		Users      []models.User `json:"users"`
+		TotalCount int           `json:"total_count"`
+		Page       int           `json:"page"`
+		PageSize   int           `json:"page_size"`
+		TotalPages int           `json:"total_pages"`
+	}
+	resp.Error = false
+	resp.Users = users
+	resp.TotalCount = totalCount
+	resp.Page = page
+	resp.PageSize = pageSize
+	resp.TotalPages = totalPages
+
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// DeleteUserByID deletes a user (with super_admin protection)
+func (app *application) DeleteUserByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	userID, err := strconv.Atoi(idStr)
+	if err != nil {
+		err = app.badRequest(w, r, errors.New("invalid user ID"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get user to check if super_admin
+	userToDelete, err := app.DB.GetUserByID(userID)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// If trying to delete super_admin, check count
+	if userToDelete.Role == "super_admin" {
+		superAdminCount, err := app.DB.GetSuperAdminCount()
+		if err != nil {
+			err = app.badRequest(w, r, err)
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
+			return
+		}
+
+		if superAdminCount < 2 {
+			err = app.badRequest(w, r, errors.New("cannot delete the last super admin"))
+			if err != nil {
+				app.errorLog.Println(err)
+				return
+			}
+			return
+		}
+	}
+
+	err = app.DB.DeleteUser(userID)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+	resp.Error = false
+	resp.Message = "User deleted successfully"
+
+	err = app.writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// CreateUser creates a new user account
+func (app *application) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Password  string `json:"password"`
+		Role      string `json:"role"` // Optional: admin, supporter, or user (default)
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate input
+	if payload.Email == "" || payload.Password == "" || payload.FirstName == "" || payload.LastName == "" {
+		err = app.badRequest(w, r, errors.New("all fields are required"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate role if provided
+	validRoles := map[string]bool{
+		"super_admin": true,
+		"admin":       true,
+		"supporter":   true,
+		"user":        true,
+	}
+
+	if payload.Role != "" && !validRoles[payload.Role] {
+		err = app.badRequest(w, r, errors.New("role must be 'super_admin', 'admin', 'supporter', or 'user'"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Default to 'supporter' if role not specified (for support staff creation)
+	if payload.Role == "" {
+		payload.Role = "supporter"
+	}
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Create user
+	user := models.User{
+		FirstName: payload.FirstName,
+		LastName:  payload.LastName,
+		Email:     payload.Email,
+		Role:      payload.Role,
+	}
+
+	err = app.DB.AddUser(user, string(hashedPassword))
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Get the created user to return the ID
+	createdUser, err := app.DB.GetUserByEmail(payload.Email)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Error     bool   `json:"error"`
+		Message   string `json:"message"`
+		ID        int    `json:"id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Role      string `json:"role"`
+	}
+	resp.Error = false
+	resp.Message = "User created successfully"
+	resp.ID = createdUser.ID
+	resp.FirstName = createdUser.FirstName
+	resp.LastName = createdUser.LastName
+	resp.Email = createdUser.Email
+	resp.Role = createdUser.Role
+
+	err = app.writeJSON(w, http.StatusCreated, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// SendMessageViaKafka sends a message to Kafka for processing (e.g., email sending)
+func (app *application) SendMessageViaKafka(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		To      string `json:"to"`
+		Subject string `json:"subject"`
+		Message string `json:"message"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate input
+	if payload.To == "" || payload.Subject == "" || payload.Message == "" {
+		err = app.badRequest(w, r, errors.New("to, subject, and message are required"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Create Kafka producer
+	brokers := []string{"kafka:9092"} // Use Kafka broker from Docker network
+	topic := "email-notifications"
+	producer := messaging.NewProducer(brokers, topic, app.infoLog)
+	defer func() {
+		if closeErr := producer.Close(); closeErr != nil {
+			app.errorLog.Printf("Error closing Kafka producer: %v", closeErr)
+		}
+	}()
+
+	// Create email message with plain text (no template)
+	data := map[string]interface{}{
+		"body": payload.Message,
+	}
+
+	// Publish message to Kafka using SendEmail method
+	ctx := context.Background()
+	err = producer.SendEmail(
+		ctx,
+		"noreply@usualstore.com", // from
+		payload.To,               // to
+		payload.Subject,          // subject
+		"plain",                  // template (we'll need to create this)
+		data,                     // data
+		messaging.PriorityNormal, // priority
+	)
+	if err != nil {
+		app.errorLog.Printf("Failed to publish message to Kafka: %v", err)
+		err = app.badRequest(w, r, errors.New("failed to queue message"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	resp.Success = true
+	resp.Message = "Message queued for delivery"
+
 	err = app.writeJSON(w, http.StatusOK, resp)
 	if err != nil {
 		app.errorLog.Println(err)

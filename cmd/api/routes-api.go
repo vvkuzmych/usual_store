@@ -46,6 +46,13 @@ func (app *application) routes() http.Handler {
 	mux.Post("/api/forgot-password", app.SendPasswordResetEmail)
 	mux.Post("/api/reset-password", app.ResetPassword)
 
+	// Messaging endpoint (publishes to Kafka)
+	mux.Post("/api/messaging/send", app.SendMessageViaKafka)
+
+	mux.Post("/api/users", app.CreateUser)
+	mux.Get("/api/users", app.GetAllUsers)
+	mux.Delete("/api/users/{id}", app.DeleteUserByID)
+
 	// Admin routes with authentication middleware
 	mux.Route("/api/admin", func(r chi.Router) {
 		r.Use(app.Auth) // Apply Auth middleware to this subrouter

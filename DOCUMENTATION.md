@@ -30,6 +30,8 @@ Step-by-step instructions:
 - **[How to Access Services](docs/guides/HOW-TO-ACCESS.md)** - IPv4 & IPv6 endpoints
 - **[IPv6 Success Story](docs/guides/IPv6-SUCCESS.md)** - IPv6 implementation
 - **[AI Assistant README](docs/guides/AI-ASSISTANT-README.md)** - AI features
+- **[Live Support Chat](docs/guides/LIVE-SUPPORT-CHAT.md)** - 🆕 Real-time human support system
+- **[Live Support Quick Start](docs/guides/LIVE-SUPPORT-QUICKSTART.md)** - 🆕 Get started in 5 minutes
 - **[Kubernetes README](docs/guides/KUBERNETES-README.md)** - K8s quick start
 - **[Go Libraries Evaluation 2025](docs/guides/GO-LIBRARIES-EVALUATION-2025.md)** - Modern Go libraries analysis
 - **[Implementation Complete: 2025 Libraries](docs/guides/IMPLEMENTATION-COMPLETE-2025-LIBRARIES.md)** - 🆕 OpenTelemetry + sqlc + Cobra
@@ -72,6 +74,7 @@ High-level overviews:
 | **Set up Stripe payments** | [Stripe Setup](docs/setup/STRIPE-SETUP.md) |
 | **Run React frontend** | [React Frontend Setup](docs/setup/REACT-FRONTEND-SETUP.md) |
 | **Enable AI assistant** | [AI Quick Start](docs/ai-assistant/QUICK-START.md) |
+| **Add live support chat** 🆕 | [Live Support Quick Start](docs/guides/LIVE-SUPPORT-QUICKSTART.md) |
 | **Deploy to Kubernetes** | [K8s Getting Started](docs/kubernetes/GETTING-STARTED.md) |
 | **Use IPv6** | [Enable IPv6 NOW](docs/ipv6-docker-setup/ENABLE-IPv6-NOW.md) |
 | **Understand auth system** | [Authentication Setup](docs/setup/AUTHENTICATION-SETUP.md) |

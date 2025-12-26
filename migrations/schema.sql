@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict uCNdFndLx99Bo4hkVc3LU4qxA9LDmkrCi3Plha2AM5dnoHCO7Blko3xuJ8aaxVu
+\restrict 0ld1NNNYfyihcnoQKRisTxaIsXPgkVhYcijNDBwwohgqOs4fKKyvrDEC1O6Rntp
 
--- Dumped from database version 16.6 (Postgres.app)
+-- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 18.0
 
 SET statement_timeout = 0;
@@ -22,6 +22,400 @@ SET row_security = off;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: ai_conversations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_conversations (
+    id integer NOT NULL,
+    session_id character varying(255) NOT NULL,
+    user_id integer,
+    started_at timestamp with time zone DEFAULT now(),
+    ended_at timestamp with time zone,
+    total_messages integer DEFAULT 0,
+    resulted_in_purchase boolean DEFAULT false,
+    total_tokens_used integer DEFAULT 0,
+    total_cost numeric(10,6) DEFAULT 0.00,
+    user_agent text,
+    ip_address character varying(45),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.ai_conversations OWNER TO postgres;
+
+--
+-- Name: TABLE ai_conversations; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_conversations IS 'Tracks AI assistant chat sessions';
+
+
+--
+-- Name: COLUMN ai_conversations.session_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_conversations.session_id IS 'Unique identifier for the chat session';
+
+
+--
+-- Name: COLUMN ai_conversations.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_conversations.user_id IS 'User ID if authenticated, null for anonymous';
+
+
+--
+-- Name: COLUMN ai_conversations.total_tokens_used; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_conversations.total_tokens_used IS 'Total OpenAI tokens consumed';
+
+
+--
+-- Name: COLUMN ai_conversations.total_cost; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_conversations.total_cost IS 'Estimated cost in USD';
+
+
+--
+-- Name: ai_conversations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.ai_conversations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.ai_conversations_id_seq OWNER TO postgres;
+
+--
+-- Name: ai_conversations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.ai_conversations_id_seq OWNED BY public.ai_conversations.id;
+
+
+--
+-- Name: ai_feedback; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_feedback (
+    id integer NOT NULL,
+    message_id integer NOT NULL,
+    conversation_id integer NOT NULL,
+    helpful boolean,
+    rating integer,
+    feedback_text text,
+    feedback_type character varying(50),
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT ai_feedback_feedback_type_check CHECK (((feedback_type)::text = ANY ((ARRAY['helpful'::character varying, 'not_helpful'::character varying, 'incorrect'::character varying, 'inappropriate'::character varying, 'other'::character varying])::text[]))),
+    CONSTRAINT ai_feedback_rating_check CHECK (((rating >= 1) AND (rating <= 5)))
+);
+
+
+ALTER TABLE public.ai_feedback OWNER TO postgres;
+
+--
+-- Name: TABLE ai_feedback; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_feedback IS 'User feedback on AI assistant responses';
+
+
+--
+-- Name: COLUMN ai_feedback.helpful; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_feedback.helpful IS 'Was this response helpful?';
+
+
+--
+-- Name: COLUMN ai_feedback.rating; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_feedback.rating IS 'User rating from 1-5 stars';
+
+
+--
+-- Name: COLUMN ai_feedback.feedback_text; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_feedback.feedback_text IS 'Optional user comment';
+
+
+--
+-- Name: ai_feedback_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.ai_feedback_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.ai_feedback_id_seq OWNER TO postgres;
+
+--
+-- Name: ai_feedback_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.ai_feedback_id_seq OWNED BY public.ai_feedback.id;
+
+
+--
+-- Name: ai_messages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_messages (
+    id integer NOT NULL,
+    conversation_id integer NOT NULL,
+    role character varying(20) NOT NULL,
+    content text NOT NULL,
+    tokens_used integer DEFAULT 0,
+    response_time_ms integer,
+    model character varying(50) DEFAULT 'gpt-3.5-turbo'::character varying,
+    temperature numeric(3,2),
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT ai_messages_role_check CHECK (((role)::text = ANY ((ARRAY['user'::character varying, 'assistant'::character varying, 'system'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.ai_messages OWNER TO postgres;
+
+--
+-- Name: TABLE ai_messages; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_messages IS 'Stores individual messages in AI conversations';
+
+
+--
+-- Name: COLUMN ai_messages.role; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_messages.role IS 'Message sender: user, assistant, or system';
+
+
+--
+-- Name: COLUMN ai_messages.content; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_messages.content IS 'The actual message text';
+
+
+--
+-- Name: COLUMN ai_messages.tokens_used; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_messages.tokens_used IS 'OpenAI tokens consumed by this message';
+
+
+--
+-- Name: COLUMN ai_messages.response_time_ms; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_messages.response_time_ms IS 'API response time in milliseconds';
+
+
+--
+-- Name: COLUMN ai_messages.metadata; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_messages.metadata IS 'Additional data like product IDs mentioned, intents, etc.';
+
+
+--
+-- Name: ai_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.ai_messages_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.ai_messages_id_seq OWNER TO postgres;
+
+--
+-- Name: ai_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.ai_messages_id_seq OWNED BY public.ai_messages.id;
+
+
+--
+-- Name: ai_product_cache; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_product_cache (
+    id integer NOT NULL,
+    product_id integer NOT NULL,
+    description_text text NOT NULL,
+    search_keywords text[],
+    category character varying(100),
+    price_tier character varying(20),
+    popularity_score integer DEFAULT 0,
+    last_mentioned_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT ai_product_cache_price_tier_check CHECK (((price_tier)::text = ANY ((ARRAY['budget'::character varying, 'mid'::character varying, 'premium'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.ai_product_cache OWNER TO postgres;
+
+--
+-- Name: TABLE ai_product_cache; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_product_cache IS 'Cached product information optimized for AI retrieval';
+
+
+--
+-- Name: COLUMN ai_product_cache.description_text; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_product_cache.description_text IS 'Product description formatted for AI context';
+
+
+--
+-- Name: COLUMN ai_product_cache.search_keywords; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_product_cache.search_keywords IS 'Keywords for semantic search';
+
+
+--
+-- Name: COLUMN ai_product_cache.popularity_score; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_product_cache.popularity_score IS 'How often product is mentioned in chats';
+
+
+--
+-- Name: ai_product_cache_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.ai_product_cache_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.ai_product_cache_id_seq OWNER TO postgres;
+
+--
+-- Name: ai_product_cache_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.ai_product_cache_id_seq OWNED BY public.ai_product_cache.id;
+
+
+--
+-- Name: ai_user_preferences; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_user_preferences (
+    id integer NOT NULL,
+    user_id integer,
+    session_id character varying(255),
+    preferred_categories text[],
+    budget_min numeric(10,2),
+    budget_max numeric(10,2),
+    interaction_count integer DEFAULT 0,
+    last_products_viewed integer[],
+    last_products_purchased integer[],
+    conversation_style character varying(50),
+    preferred_language character varying(10) DEFAULT 'en'::character varying,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT ai_user_preferences_conversation_style_check CHECK (((conversation_style)::text = ANY ((ARRAY['concise'::character varying, 'detailed'::character varying, 'friendly'::character varying, 'professional'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.ai_user_preferences OWNER TO postgres;
+
+--
+-- Name: TABLE ai_user_preferences; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.ai_user_preferences IS 'Stores learned preferences from user interactions with AI';
+
+
+--
+-- Name: COLUMN ai_user_preferences.preferred_categories; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_user_preferences.preferred_categories IS 'Array of category names user is interested in';
+
+
+--
+-- Name: COLUMN ai_user_preferences.budget_min; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_user_preferences.budget_min IS 'Minimum budget mentioned by user';
+
+
+--
+-- Name: COLUMN ai_user_preferences.budget_max; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_user_preferences.budget_max IS 'Maximum budget mentioned by user';
+
+
+--
+-- Name: COLUMN ai_user_preferences.last_products_viewed; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_user_preferences.last_products_viewed IS 'Array of product IDs viewed in chat';
+
+
+--
+-- Name: COLUMN ai_user_preferences.conversation_style; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.ai_user_preferences.conversation_style IS 'How the user prefers to communicate';
+
+
+--
+-- Name: ai_user_preferences_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.ai_user_preferences_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.ai_user_preferences_id_seq OWNER TO postgres;
+
+--
+-- Name: ai_user_preferences_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.ai_user_preferences_id_seq OWNED BY public.ai_user_preferences.id;
+
 
 --
 -- Name: customers; Type: TABLE; Schema: public; Owner: postgres
@@ -364,6 +758,41 @@ ALTER SEQUENCE public.widgets_id_seq OWNED BY public.widgets.id;
 
 
 --
+-- Name: ai_conversations id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_conversations ALTER COLUMN id SET DEFAULT nextval('public.ai_conversations_id_seq'::regclass);
+
+
+--
+-- Name: ai_feedback id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_feedback ALTER COLUMN id SET DEFAULT nextval('public.ai_feedback_id_seq'::regclass);
+
+
+--
+-- Name: ai_messages id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_messages ALTER COLUMN id SET DEFAULT nextval('public.ai_messages_id_seq'::regclass);
+
+
+--
+-- Name: ai_product_cache id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_product_cache ALTER COLUMN id SET DEFAULT nextval('public.ai_product_cache_id_seq'::regclass);
+
+
+--
+-- Name: ai_user_preferences id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_user_preferences ALTER COLUMN id SET DEFAULT nextval('public.ai_user_preferences_id_seq'::regclass);
+
+
+--
 -- Name: customers id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -417,6 +846,70 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 ALTER TABLE ONLY public.widgets ALTER COLUMN id SET DEFAULT nextval('public.widgets_id_seq'::regclass);
+
+
+--
+-- Name: ai_conversations ai_conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_conversations
+    ADD CONSTRAINT ai_conversations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_conversations ai_conversations_session_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_conversations
+    ADD CONSTRAINT ai_conversations_session_id_key UNIQUE (session_id);
+
+
+--
+-- Name: ai_feedback ai_feedback_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_feedback
+    ADD CONSTRAINT ai_feedback_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_messages ai_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_messages
+    ADD CONSTRAINT ai_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_product_cache ai_product_cache_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_product_cache
+    ADD CONSTRAINT ai_product_cache_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_product_cache ai_product_cache_product_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_product_cache
+    ADD CONSTRAINT ai_product_cache_product_id_key UNIQUE (product_id);
+
+
+--
+-- Name: ai_user_preferences ai_user_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_user_preferences
+    ADD CONSTRAINT ai_user_preferences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_user_preferences ai_user_preferences_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_user_preferences
+    ADD CONSTRAINT ai_user_preferences_user_id_key UNIQUE (user_id);
 
 
 --
@@ -524,6 +1017,125 @@ ALTER TABLE ONLY public.widgets
 
 
 --
+-- Name: idx_ai_conversations_resulted_in_purchase; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_conversations_resulted_in_purchase ON public.ai_conversations USING btree (resulted_in_purchase);
+
+
+--
+-- Name: idx_ai_conversations_session_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_conversations_session_id ON public.ai_conversations USING btree (session_id);
+
+
+--
+-- Name: idx_ai_conversations_started_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_conversations_started_at ON public.ai_conversations USING btree (started_at);
+
+
+--
+-- Name: idx_ai_conversations_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_conversations_user_id ON public.ai_conversations USING btree (user_id);
+
+
+--
+-- Name: idx_ai_feedback_conversation_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_feedback_conversation_id ON public.ai_feedback USING btree (conversation_id);
+
+
+--
+-- Name: idx_ai_feedback_helpful; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_feedback_helpful ON public.ai_feedback USING btree (helpful);
+
+
+--
+-- Name: idx_ai_feedback_message_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_feedback_message_id ON public.ai_feedback USING btree (message_id);
+
+
+--
+-- Name: idx_ai_feedback_rating; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_feedback_rating ON public.ai_feedback USING btree (rating);
+
+
+--
+-- Name: idx_ai_messages_conversation_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_messages_conversation_id ON public.ai_messages USING btree (conversation_id);
+
+
+--
+-- Name: idx_ai_messages_created_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_messages_created_at ON public.ai_messages USING btree (created_at);
+
+
+--
+-- Name: idx_ai_messages_metadata; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_messages_metadata ON public.ai_messages USING gin (metadata);
+
+
+--
+-- Name: idx_ai_messages_role; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_messages_role ON public.ai_messages USING btree (role);
+
+
+--
+-- Name: idx_ai_product_cache_popularity_score; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_product_cache_popularity_score ON public.ai_product_cache USING btree (popularity_score DESC);
+
+
+--
+-- Name: idx_ai_product_cache_product_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_product_cache_product_id ON public.ai_product_cache USING btree (product_id);
+
+
+--
+-- Name: idx_ai_product_cache_search_keywords; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_product_cache_search_keywords ON public.ai_product_cache USING gin (search_keywords);
+
+
+--
+-- Name: idx_ai_user_preferences_session_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_user_preferences_session_id ON public.ai_user_preferences USING btree (session_id);
+
+
+--
+-- Name: idx_ai_user_preferences_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ai_user_preferences_user_id ON public.ai_user_preferences USING btree (user_id);
+
+
+--
 -- Name: schema_migration_version_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -535,6 +1147,54 @@ CREATE UNIQUE INDEX schema_migration_version_idx ON public.schema_migration USIN
 --
 
 CREATE INDEX sessions_expiry_idx ON public.sessions USING btree (expiry);
+
+
+--
+-- Name: ai_conversations ai_conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_conversations
+    ADD CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ai_feedback ai_feedback_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_feedback
+    ADD CONSTRAINT ai_feedback_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ai_feedback ai_feedback_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_feedback
+    ADD CONSTRAINT ai_feedback_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ai_messages(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ai_messages ai_messages_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_messages
+    ADD CONSTRAINT ai_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.ai_conversations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ai_product_cache ai_product_cache_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_product_cache
+    ADD CONSTRAINT ai_product_cache_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.widgets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ai_user_preferences ai_user_preferences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_user_preferences
+    ADD CONSTRAINT ai_user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -589,5 +1249,5 @@ ALTER TABLE ONLY public.transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uCNdFndLx99Bo4hkVc3LU4qxA9LDmkrCi3Plha2AM5dnoHCO7Blko3xuJ8aaxVu
+\unrestrict 0ld1NNNYfyihcnoQKRisTxaIsXPgkVhYcijNDBwwohgqOs4fKKyvrDEC1O6Rntp
 

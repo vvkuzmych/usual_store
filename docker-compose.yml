@@ -206,6 +206,55 @@ services:
       retries: 3
       start_period: 5s
 
+  # Support Service (WebSocket backend for live chat)
+  support-service:
+    build:
+      context: .
+      dockerfile: cmd/support-service/Dockerfile
+    environment:
+      - SUPPORT_SERVICE_PORT=5001
+      - DATABASE_DSN=postgres://postgres:password@database:5432/usualstore?sslmode=disable
+    ports:
+      - "127.0.0.1:5001:5001"  # IPv4 localhost binding
+      - "[::1]:5001:5001"      # IPv6 localhost binding
+    networks:
+      - usualstore_network
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/support/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - support
+
+  # Support Frontend (React UI for live chat)
+  support-frontend:
+    build:
+      context: ./support-frontend
+      dockerfile: Dockerfile
+    environment:
+      - REACT_APP_SUPPORT_API_URL=http://support-service:5000
+      - REACT_APP_SUPPORT_WS_URL=ws://support-service:5000
+    ports:
+      - "127.0.0.1:3005:3005"  # IPv4 localhost binding
+      - "[::1]:3005:3005"      # IPv6 localhost binding
+    networks:
+      - usualstore_network
+    depends_on:
+      - support-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - support
+
 networks:
   usualstore_network:
     driver: bridge
