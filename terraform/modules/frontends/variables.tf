@@ -8,7 +8,7 @@ variable "network_id" {
 variable "react_port" {
   description = "React frontend external port"
   type        = number
-  default     = 3000
+  default     = 3007
 }
 
 variable "typescript_port" {

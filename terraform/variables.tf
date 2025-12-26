@@ -73,7 +73,7 @@ variable "ai_port" {
 variable "react_port" {
   description = "React frontend port"
   type        = number
-  default     = 3000
+  default     = 3007
 }
 
 variable "typescript_port" {

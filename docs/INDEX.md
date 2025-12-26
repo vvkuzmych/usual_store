@@ -35,6 +35,7 @@ docs/
 |----------|-------------|
 | [TERRAFORM-INFRASTRUCTURE.md](TERRAFORM-INFRASTRUCTURE.md) | Terraform infrastructure overview |
 | [KUBERNETES-README.md](guides/KUBERNETES-README.md) | Kubernetes deployment guide |
+| [KUBERNETES-DASHBOARD-GUIDE.md](guides/KUBERNETES-DASHBOARD-GUIDE.md) | Kubernetes dashboard & monitoring |
 | [IPv6-SUCCESS.md](guides/IPv6-SUCCESS.md) | IPv6 implementation |
 | [GITHUB-ACTIONS-CACHE-FIX.md](guides/GITHUB-ACTIONS-CACHE-FIX.md) | CI/CD cache optimization |
 
@@ -69,6 +70,7 @@ docs/
 ### Development & Testing
 | Document | Description |
 |----------|-------------|
+| [DEVELOPMENT-WORKFLOW.md](guides/DEVELOPMENT-WORKFLOW.md) | How to update code changes |
 | [TABLE-DRIVEN-TESTS.md](guides/TABLE-DRIVEN-TESTS.md) | Testing methodology |
 | [TEST-SUMMARY.md](guides/TEST-SUMMARY.md) | Testing overview |
 | [AI-TEST-COVERAGE-SUMMARY.md](guides/AI-TEST-COVERAGE-SUMMARY.md) | Test coverage analysis |
