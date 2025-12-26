@@ -484,33 +484,33 @@ func (app *application) authenticateToken(r *http.Request) (*models.User, error)
 	if authHeader == "" {
 		fmt.Println("no header", authHeader)
 
-		return nil, errors.New("Missing Authorization header")
+		return nil, errors.New("missing authorization header")
 	}
 
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" || headerParts[1] == "" {
 		fmt.Println(" invalid header", authHeader)
 
-		return nil, errors.New("Invalid Authorization header")
+		return nil, errors.New("invalid authorization header")
 	}
 
 	tokenString := headerParts[1]
 	if tokenString == "" {
 		fmt.Println("token empty", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - no token found")
+		return nil, errors.New("invalid authorization header: no token found")
 	}
 	if len(tokenString) != 26 {
 		fmt.Println("wrong length", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - wrong length")
+		return nil, errors.New("invalid authorization header: wrong length")
 	}
 
 	user, err := app.tokenService.GetUserForToken(ctx, tokenString)
 	if err != nil {
 		fmt.Println("token not found", authHeader)
 
-		return nil, errors.New("Invalid Authorization header - matching token not found")
+		return nil, errors.New("invalid authorization header: matching token not found")
 	}
 
 	return user, nil
