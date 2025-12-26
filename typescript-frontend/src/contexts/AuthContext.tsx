@@ -48,8 +48,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
       const response = await apiService.login(credentials);
-      setUser(response.user);
-      localStorage.setItem("user", JSON.stringify(response.user));
+      
+      // Transform API response to User object
+      const user: User = {
+        id: response.id,
+        first_name: response.first_name,
+        last_name: response.last_name,
+        email: response.email,
+        role: response.role,
+      };
+      
+      setUser(user);
+      localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("authToken", response.authentication_token.token);
     } catch (error) {
       console.error("Login failed:", error);
