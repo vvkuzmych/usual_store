@@ -36,11 +36,13 @@ func main() {
 	// Health check endpoint
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(HealthResponse{
+		if err := json.NewEncoder(w).Encode(HealthResponse{
 			Status:    "healthy",
 			Timestamp: time.Now(),
 			Service:   "ai-assistant",
-		})
+		}); err != nil {
+			log.Printf("Error encoding health response: %v", err)
+		}
 	})
 
 	// Chat endpoint (placeholder implementation)
@@ -68,13 +70,15 @@ func main() {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Error encoding chat response: %v", err)
+		}
 	})
 
 	// Info endpoint
 	http.HandleFunc("/api/ai/info", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"service":     "AI Shopping Assistant",
 			"version":     "1.0.0",
 			"status":      "placeholder",
@@ -84,7 +88,9 @@ func main() {
 				"GET /api/ai/info - Service information",
 				"GET /health - Health check",
 			},
-		})
+		}); err != nil {
+			log.Printf("Error encoding info response: %v", err)
+		}
 	})
 
 	log.Printf("Starting AI Assistant Service on port %s", port)
