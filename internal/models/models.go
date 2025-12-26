@@ -85,8 +85,8 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  string    `json:"password"`
 	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // InsertTransaction insert a new txn and returns new id
@@ -582,27 +582,66 @@ func (m *DBModel) DeleteUser(id int) error {
 	return nil
 }
 
-// GetAllUsersPaginated returns paginated list of all users
-func (m *DBModel) GetAllUsersPaginated(offset, limit int) ([]User, error) {
+// GetAllUsersPaginated returns paginated list of all users with optional search and sorting
+func (m *DBModel) GetAllUsersPaginated(offset, limit int, search, sortBy, sortOrder string) ([]User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at 
-			  FROM users 
-			  ORDER BY 
-			    CASE role
-			      WHEN 'super_admin' THEN 1
-			      WHEN 'admin' THEN 2
-			      WHEN 'supporter' THEN 3
-			      ELSE 4
-			    END, id
-			  LIMIT $1 OFFSET $2`
+	// Build base query
+	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at FROM users`
 
-	rows, err := m.DB.QueryContext(ctx, query, limit, offset)
+	// Add search filter if provided
+	args := []interface{}{}
+	argIndex := 1
+
+	if search != "" {
+		query += ` WHERE 
+			CAST(id AS TEXT) LIKE $` + fmt.Sprintf("%d", argIndex) + ` OR
+			LOWER(first_name) LIKE $` + fmt.Sprintf("%d", argIndex) + ` OR
+			LOWER(last_name) LIKE $` + fmt.Sprintf("%d", argIndex) + ` OR
+			LOWER(email) LIKE $` + fmt.Sprintf("%d", argIndex) + ` OR
+			LOWER(role) LIKE $` + fmt.Sprintf("%d", argIndex)
+		args = append(args, "%"+strings.ToLower(search)+"%")
+		argIndex++
+	}
+
+	// Add sorting
+	orderClause := " ORDER BY "
+	validSortFields := map[string]string{
+		"id":         "id",
+		"name":       "first_name, last_name",
+		"email":      "email",
+		"role":       "CASE role WHEN 'super_admin' THEN 1 WHEN 'admin' THEN 2 WHEN 'supporter' THEN 3 ELSE 4 END",
+		"created_at": "created_at",
+	}
+
+	if sortField, ok := validSortFields[sortBy]; ok {
+		orderClause += sortField
+		if strings.ToUpper(sortOrder) == "DESC" {
+			orderClause += " DESC"
+		} else {
+			orderClause += " ASC"
+		}
+	} else {
+		// Default sort
+		orderClause += "CASE role WHEN 'super_admin' THEN 1 WHEN 'admin' THEN 2 WHEN 'supporter' THEN 3 ELSE 4 END, id"
+	}
+
+	query += orderClause
+
+	// Add pagination
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	args = append(args, limit, offset)
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if cerr := rows.Close(); cerr != nil {
+			log.Printf("Error closing rows: %v", cerr)
+		}
+	}()
 
 	var users []User
 	for rows.Next() {
@@ -619,19 +658,37 @@ func (m *DBModel) GetAllUsersPaginated(offset, limit int) ([]User, error) {
 		if err != nil {
 			return nil, err
 		}
+		user.Password = "" // Never return password
 		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return users, nil
 }
 
-// GetUserCount returns the total count of users
-func (m *DBModel) GetUserCount() (int, error) {
+// GetUserCount returns the total count of users with optional search filter
+func (m *DBModel) GetUserCount(search string) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	query := `SELECT COUNT(*) FROM users`
+	args := []interface{}{}
+
+	if search != "" {
+		query += ` WHERE 
+			CAST(id AS TEXT) LIKE $1 OR
+			LOWER(first_name) LIKE $1 OR
+			LOWER(last_name) LIKE $1 OR
+			LOWER(email) LIKE $1 OR
+			LOWER(role) LIKE $1`
+		args = append(args, "%"+strings.ToLower(search)+"%")
+	}
+
 	var count int
-	err := m.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, err
 	}

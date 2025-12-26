@@ -19,7 +19,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const MESSAGING_API_URL = process.env.REACT_APP_MESSAGING_API_URL || 'http://localhost:6001';
+const API_URL = process.env.REACT_APP_SUPPORT_API_URL || 'http://localhost:4001';
+const MESSAGING_API_URL = process.env.REACT_APP_MESSAGING_API_URL || 'http://localhost:4001'; // Backend API publishes to Kafka
 
 function CreateSupporterAccount({ open, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -76,23 +77,68 @@ function CreateSupporterAccount({ open, onClose, onSuccess }) {
 
       // Send credentials via email using messaging service
       try {
-        await axios.post(`${MESSAGING_API_URL}/api/messaging/send`, {
-          to: formData.email,
-          subject: 'Your Support Dashboard Access Credentials',
-          message: `
-Hello ${formData.firstName} ${formData.lastName},
+        const roleDisplayName = 'Support Agent';
+        const loginUrl = 'http://localhost:3005/support/dashboard';
 
-Your support dashboard account has been created successfully!
+        const emailMessage = `
+══════════════════════════════════════════════════════════════
+                USUAL STORE - ACCOUNT REGISTRATION
+══════════════════════════════════════════════════════════════
 
-Login URL: http://localhost:3005/support/dashboard
-Email: ${formData.email}
-Password: ${formData.password}
+Dear ${formData.firstName} ${formData.lastName},
 
-Please log in and change your password after your first login.
+Your account has been successfully created! Below are your credentials
+and account information:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    ACCOUNT INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Full Name:  ${formData.firstName} ${formData.lastName}
+Email:      ${formData.email}
+Password:   ${formData.password}
+Role:       ${roleDisplayName}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                      ACCESS DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You have been registered with the role of: ${roleDisplayName}
+
+Your role grants you access to the Support Dashboard where you can:
+  • View and respond to support tickets
+  • Assist customers with their inquiries
+  • Provide technical support
+
+Dashboard URL: ${loginUrl}
+
+Please bookmark this URL for easy access.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    SECURITY REMINDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  IMPORTANT: For your security, please change your password after
+    your first login.
+
+⚠️  Keep your credentials confidential and do not share them with
+    anyone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you have any questions or need assistance, please don't hesitate
+to contact our support team.
 
 Best regards,
-Support Team
-          `.trim(),
+The Usual Store Team
+
+══════════════════════════════════════════════════════════════
+        `;
+
+        await axios.post(`${MESSAGING_API_URL}/api/messaging/send`, {
+          to: formData.email,
+          subject: 'Welcome to Usual Store - Your Support Agent Account Has Been Created',
+          message: emailMessage.trim(),
         });
       } catch (emailError) {
         console.error('Failed to send email:', emailError);

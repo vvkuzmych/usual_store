@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"usual_store/internal/cards"
+	"usual_store/internal/messaging"
 	"usual_store/internal/models"
 	"usual_store/internal/urlsigner"
 	"usual_store/internal/validator"
@@ -1140,6 +1141,17 @@ func (app *application) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	page := 1
 	pageSize := 10
+	search := r.URL.Query().Get("search")
+	sortBy := r.URL.Query().Get("sort_by")
+	sortOrder := r.URL.Query().Get("sort_order")
+
+	// Default sort values
+	if sortBy == "" {
+		sortBy = "id"
+	}
+	if sortOrder == "" {
+		sortOrder = "asc"
+	}
 
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -1155,8 +1167,8 @@ func (app *application) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * pageSize
 
-	// Get total count
-	totalCount, err := app.DB.GetUserCount()
+	// Get total count (with search filter if provided)
+	totalCount, err := app.DB.GetUserCount(search)
 	if err != nil {
 		err = app.badRequest(w, r, err)
 		if err != nil {
@@ -1166,8 +1178,8 @@ func (app *application) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get paginated users
-	users, err := app.DB.GetAllUsersPaginated(offset, pageSize)
+	// Get paginated users with search and sort
+	users, err := app.DB.GetAllUsersPaginated(offset, pageSize, search, sortBy, sortOrder)
 	if err != nil {
 		err = app.badRequest(w, r, err)
 		if err != nil {
@@ -1382,6 +1394,84 @@ func (app *application) CreateUser(w http.ResponseWriter, r *http.Request) {
 	resp.Role = createdUser.Role
 
 	err = app.writeJSON(w, http.StatusCreated, resp)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+}
+
+// SendMessageViaKafka sends a message to Kafka for processing (e.g., email sending)
+func (app *application) SendMessageViaKafka(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		To      string `json:"to"`
+		Subject string `json:"subject"`
+		Message string `json:"message"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		err = app.badRequest(w, r, err)
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Validate input
+	if payload.To == "" || payload.Subject == "" || payload.Message == "" {
+		err = app.badRequest(w, r, errors.New("to, subject, and message are required"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	// Create Kafka producer
+	brokers := []string{"kafka:9092"} // Use Kafka broker from Docker network
+	topic := "email-notifications"
+	producer := messaging.NewProducer(brokers, topic, app.infoLog)
+	defer func() {
+		if closeErr := producer.Close(); closeErr != nil {
+			app.errorLog.Printf("Error closing Kafka producer: %v", closeErr)
+		}
+	}()
+
+	// Create email message with plain text (no template)
+	data := map[string]interface{}{
+		"body": payload.Message,
+	}
+
+	// Publish message to Kafka using SendEmail method
+	ctx := context.Background()
+	err = producer.SendEmail(
+		ctx,
+		"noreply@usualstore.com", // from
+		payload.To,               // to
+		payload.Subject,          // subject
+		"plain",                  // template (we'll need to create this)
+		data,                     // data
+		messaging.PriorityNormal, // priority
+	)
+	if err != nil {
+		app.errorLog.Printf("Failed to publish message to Kafka: %v", err)
+		err = app.badRequest(w, r, errors.New("failed to queue message"))
+		if err != nil {
+			app.errorLog.Println(err)
+			return
+		}
+		return
+	}
+
+	var resp struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	resp.Success = true
+	resp.Message = "Message queued for delivery"
+
+	err = app.writeJSON(w, http.StatusOK, resp)
 	if err != nil {
 		app.errorLog.Println(err)
 		return

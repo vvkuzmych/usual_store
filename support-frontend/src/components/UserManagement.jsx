@@ -11,6 +11,7 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TableSortLabel,
   Chip,
   IconButton,
   Button,
@@ -27,19 +28,23 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  InputAdornment
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   People as PeopleIcon,
   ArrowBack as ArrowBackIcon,
-  PersonAdd as PersonAddIcon
+  PersonAdd as PersonAddIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_SUPPORT_API_URL || 'http://localhost:4001';
+const MESSAGING_API_URL = process.env.REACT_APP_MESSAGING_API_URL || 'http://localhost:4001'; // Backend API publishes to Kafka
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -60,16 +65,28 @@ function UserManagement() {
     password: '',
     role: 'user'
   });
+  
+  // Sorting state
+  const [orderBy, setOrderBy] = useState('id');
+  const [order, setOrder] = useState('asc');
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchDebounce, setSearchDebounce] = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
     
     try {
+      // Fetch users with server-side filtering and sorting
       const response = await axios.get(`${API_URL}/api/users`, {
         params: {
           page: page + 1, // Backend uses 1-based indexing
           page_size: rowsPerPage,
+          search: searchDebounce,
+          sort_by: orderBy,
+          sort_order: order,
         },
       });
 
@@ -83,9 +100,38 @@ function UserManagement() {
     }
   };
 
+  // Fetch users when page, rowsPerPage, orderBy, order, or searchDebounce changes
   useEffect(() => {
     fetchUsers();
-  }, [page, rowsPerPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage, orderBy, order, searchDebounce]);
+
+  // Debounce search input (wait 500ms after user stops typing)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchDebounce(searchTerm);
+      setPage(0); // Reset to first page when search changes
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Handle sorting
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+    setPage(0); // Reset to first page when sorting changes
+  };
+
+  // Handle search
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -161,13 +207,105 @@ function UserManagement() {
     setError('');
 
     try {
-      await axios.post(`${API_URL}/api/users`, {
+      const response = await axios.post(`${API_URL}/api/users`, {
         first_name: newUser.firstName,
         last_name: newUser.lastName,
         email: newUser.email,
         password: newUser.password,
         role: newUser.role
       });
+      
+      // Send welcome email via Kafka messaging service
+      try {
+        const roleDisplayName = {
+          'super_admin': 'Super Administrator',
+          'admin': 'Administrator',
+          'supporter': 'Support Agent',
+          'user': 'User'
+        }[newUser.role] || 'User';
+
+        // Determine if user needs dashboard access
+        const isDashboardUser = ['super_admin', 'admin', 'supporter'].includes(newUser.role);
+        const loginUrl = isDashboardUser 
+          ? 'http://localhost:3005/support/dashboard' 
+          : 'http://localhost:3000';
+
+        // Build email message
+        let emailMessage = `
+══════════════════════════════════════════════════════════════
+                USUAL STORE - ACCOUNT REGISTRATION
+══════════════════════════════════════════════════════════════
+
+Dear ${newUser.firstName} ${newUser.lastName},
+
+Your account has been successfully created! Below are your credentials
+and account information:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    ACCOUNT INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Full Name:  ${newUser.firstName} ${newUser.lastName}
+Email:      ${newUser.email}
+Password:   ${newUser.password}
+Role:       ${roleDisplayName}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                      ACCESS DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You have been registered with the role of: ${roleDisplayName}
+`;
+
+        if (isDashboardUser) {
+          emailMessage += `
+Your role grants you access to the Support Dashboard where you can:
+${newUser.role === 'super_admin' ? '  • Manage all users and permissions\n  • Create administrators and supporters\n  • View and manage all support tickets\n  • Access system analytics and reports' : ''}${newUser.role === 'admin' ? '  • Create support staff accounts\n  • View and manage support tickets\n  • Access system reports' : ''}${newUser.role === 'supporter' ? '  • View and respond to support tickets\n  • Assist customers with their inquiries' : ''}
+
+Dashboard URL: ${loginUrl}
+
+Please bookmark this URL for easy access.
+`;
+        } else {
+          emailMessage += `
+You can now log in to shop for products and services.
+
+Store URL: ${loginUrl}
+`;
+        }
+
+        emailMessage += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    SECURITY REMINDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  IMPORTANT: For your security, please change your password after
+    your first login.
+
+⚠️  Keep your credentials confidential and do not share them with
+    anyone.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you have any questions or need assistance, please don't hesitate
+to contact our support team.
+
+Best regards,
+The Usual Store Team
+
+══════════════════════════════════════════════════════════════
+        `;
+
+        await axios.post(`${MESSAGING_API_URL}/api/messaging/send`, {
+          to: newUser.email,
+          subject: `Welcome to Usual Store - Your ${roleDisplayName} Account Has Been Created`,
+          message: emailMessage.trim(),
+        });
+        console.log('✅ Welcome email sent successfully via Kafka');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send welcome email:', emailError);
+        // Don't fail the whole process if email fails
+      }
       
       // Refresh the list
       await fetchUsers();
@@ -214,6 +352,29 @@ function UserManagement() {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
   return (
     <Box>
       {/* AppBar */}
@@ -250,11 +411,45 @@ function UserManagement() {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {/* Total Count */}
+        {/* Total Count and Search */}
         <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6">
-            Total Users: <strong>{totalCount}</strong>
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Typography variant="h6">
+              {searchTerm ? (
+                <>
+                  Found: <strong>{totalCount}</strong> user{totalCount !== 1 ? 's' : ''}
+                  <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                    (filtered)
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  Total Users: <strong>{totalCount}</strong>
+                </>
+              )}
+            </Typography>
+            <TextField
+              size="small"
+              placeholder="Search by ID, name, email, role, or date..."
+              value={searchTerm}
+              onChange={handleSearch}
+              sx={{ minWidth: 300 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={handleClearSearch}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
         </Paper>
 
         {/* Error Alert */}
@@ -269,11 +464,51 @@ function UserManagement() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell><strong>ID</strong></TableCell>
-                <TableCell><strong>Name</strong></TableCell>
-                <TableCell><strong>Email</strong></TableCell>
-                <TableCell><strong>Role</strong></TableCell>
-                <TableCell><strong>Created At</strong></TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'id'}
+                    direction={orderBy === 'id' ? order : 'asc'}
+                    onClick={() => handleRequestSort('id')}
+                  >
+                    <strong>ID</strong>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'name'}
+                    direction={orderBy === 'name' ? order : 'asc'}
+                    onClick={() => handleRequestSort('name')}
+                  >
+                    <strong>Name</strong>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'email'}
+                    direction={orderBy === 'email' ? order : 'asc'}
+                    onClick={() => handleRequestSort('email')}
+                  >
+                    <strong>Email</strong>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'role'}
+                    direction={orderBy === 'role' ? order : 'asc'}
+                    onClick={() => handleRequestSort('role')}
+                  >
+                    <strong>Role</strong>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={orderBy === 'created_at'}
+                    direction={orderBy === 'created_at' ? order : 'asc'}
+                    onClick={() => handleRequestSort('created_at')}
+                  >
+                    <strong>Created At</strong>
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell align="center"><strong>Actions</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -288,7 +523,7 @@ function UserManagement() {
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
-                      No users found
+                      {searchTerm ? 'No users match your search' : 'No users found'}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -308,7 +543,7 @@ function UserManagement() {
                       />
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {formatDate(user.created_at)}
                     </TableCell>
                     <TableCell align="center">
                       <IconButton
