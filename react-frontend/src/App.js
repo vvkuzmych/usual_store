@@ -13,6 +13,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ResetPassword from './pages/ResetPassword';
 import ChatWidget from './components/ChatWidget';
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
               </Routes>
             </main>
             <Footer />

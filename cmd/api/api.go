@@ -14,6 +14,7 @@ import (
 	"time"
 	"usual_store/internal/driver"
 	"usual_store/internal/models"
+
 	// "usual_store/internal/telemetry"  // Temporarily disabled for certificate issues
 	"usual_store/pkg/repository"
 	"usual_store/pkg/service"
