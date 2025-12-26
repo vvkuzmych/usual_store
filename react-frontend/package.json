@@ -11,17 +11,17 @@
     "lint": "eslint src/**/*.{js,jsx}"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.0",
+    "@mui/material": "^5.15.0",
+    "@stripe/react-stripe-js": "^2.4.0",
+    "@stripe/stripe-js": "^2.4.0",
+    "axios": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.6.2",
-    "@mui/material": "^5.15.0",
-    "@mui/icons-material": "^5.15.0",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@stripe/stripe-js": "^2.4.0",
-    "@stripe/react-stripe-js": "^2.4.0"
+    "react-scripts": "5.0.1"
   },
   "eslintConfig": {
     "extends": [
@@ -40,6 +40,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://back-end:4001"
+  "proxy": "http://back-end:4001",
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
 }
-
