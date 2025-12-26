@@ -7,3 +7,5 @@ static/.DS_Store
 vendor
 react-redux-frontend/node_modules
 react-frontend/node_modules
+typescript-frontend/node_modules
+support-frontend/node_modules
