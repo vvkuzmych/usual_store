@@ -47,7 +47,8 @@ resource "docker_container" "database" {
   }
 
   networks_advanced {
-    name = var.network_id
+    name    = var.network_id
+    aliases = ["database"]
   }
 
   volumes {

@@ -142,11 +142,12 @@ sensitive_env_vars := [
     "PRIVATE"
 ]
 
-insecure_env_vars[var] {
+insecure_env_vars contains var if {
     some env in input.env_vars
     some sensitive in sensitive_env_vars
     contains(upper(env.name), sensitive)
     not uses_secure_source(env)
+    var := env
 }
 
 uses_secure_source(env) if {
@@ -231,6 +232,14 @@ deny_docker_socket_mount if {
     input.container_name != "policy-enforcer"
 }
 
+allow_docker_socket_mount if {
+    not deny_docker_socket_mount
+}
+
+allow_docker_socket_mount if {
+    not docker_socket_mount
+}
+
 # Health check security
 valid_health_check_security if {
     input.health_check
@@ -249,7 +258,7 @@ valid_health_check_command if {
 }
 
 # Security scan results
-security_violations[violation] {
+security_violations contains violation if {
     not secure_container
     violation := {
         "type": "insecure_container",
@@ -258,7 +267,7 @@ security_violations[violation] {
     }
 }
 
-security_violations[violation] {
+security_violations contains violation if {
     count(insecure_env_vars) > 0
     violation := {
         "type": "insecure_env_vars",
@@ -268,7 +277,7 @@ security_violations[violation] {
     }
 }
 
-security_violations[violation] {
+security_violations contains violation if {
     deny_docker_socket_mount
     violation := {
         "type": "unauthorized_docker_socket",
@@ -277,7 +286,7 @@ security_violations[violation] {
     }
 }
 
-security_violations[violation] {
+security_violations contains violation if {
     not safe_volume_mounts
     violation := {
         "type": "dangerous_mount",
@@ -298,7 +307,7 @@ security_score := score if {
         secure_network_config,
         valid_port_exposure,
         safe_volume_mounts,
-        not deny_docker_socket_mount,
+        allow_docker_socket_mount,
         valid_health_check_security
     ])
     score := (passed_checks / total_checks) * 100

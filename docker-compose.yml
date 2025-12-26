@@ -269,3 +269,5 @@ networks:
 
 volumes:
   db_data:
+    external: true
+    name: usualstore_db_data

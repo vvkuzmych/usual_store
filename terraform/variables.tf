@@ -64,6 +64,12 @@ variable "support_port" {
   default     = 5001
 }
 
+variable "ai_port" {
+  description = "AI Assistant service port"
+  type        = number
+  default     = 8080
+}
+
 variable "react_port" {
   description = "React frontend port"
   type        = number
@@ -109,18 +115,6 @@ variable "openai_api_key" {
   type        = string
   default     = ""
   sensitive   = true
-}
-
-# Policy Configuration
-variable "policy_files" {
-  description = "List of OPA policy files to load"
-  type        = list(string)
-  default = [
-    "policies/network.rego",
-    "policies/resource_limits.rego",
-    "policies/security.rego",
-    "policies/access_control.rego"
-  ]
 }
 
 # Environment

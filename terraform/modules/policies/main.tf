@@ -6,10 +6,6 @@ terraform {
       source  = "kreuzwerker/docker"
       version = "~> 3.0"
     }
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.4"
-    }
   }
 }
 
@@ -17,16 +13,6 @@ terraform {
 resource "docker_image" "opa" {
   name         = "openpolicyagent/opa:latest"
   keep_locally = false
-}
-
-# Create policy directory
-resource "local_file" "policy_bundle" {
-  for_each = toset(var.policy_files)
-
-  filename = "${path.root}/../${each.value}"
-  content = templatefile("${path.module}/templates/${basename(each.value)}.tpl", {
-    environment = var.environment
-  })
 }
 
 # OPA Server container

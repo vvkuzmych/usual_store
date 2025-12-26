@@ -102,10 +102,13 @@ module "backend_api" {
 
   network_id = docker_network.usualstore_network.id
 
-  api_port      = var.api_port
-  database_dsn  = module.database.connection_string
-  stripe_key    = var.stripe_key
-  stripe_secret = var.stripe_secret
+  api_port             = var.api_port
+  database_dsn         = module.database.connection_string
+  stripe_key           = var.stripe_key
+  stripe_secret        = var.stripe_secret
+  openai_api_key       = var.openai_api_key
+  enable_ai_assistant  = var.enable_ai_assistant
+  database_dependency  = module.database.container_id
 
   depends_on = [module.database]
 }
@@ -115,8 +118,21 @@ module "support_service" {
 
   network_id = docker_network.usualstore_network.id
 
-  support_port = var.support_port
-  database_dsn = module.database.connection_string
+  support_port        = var.support_port
+  database_dsn        = module.database.connection_string
+  database_dependency = module.database.container_id
+
+  depends_on = [module.database]
+}
+
+module "ai_assistant" {
+  source = "./modules/ai-assistant"
+
+  network_id = docker_network.usualstore_network.id
+
+  ai_port        = var.ai_port
+  database_dsn   = module.database.connection_string
+  openai_api_key = var.openai_api_key
 
   depends_on = [module.database]
 }
@@ -134,14 +150,15 @@ module "frontends" {
   api_url     = "http://back-end:${var.api_port}"
   support_url = "http://support-service:${var.support_port}"
 
-  depends_on = [module.backend_api, module.support_service]
+  depends_on = [module.backend_api, module.support_service, module.ai_assistant]
 }
 
 module "messaging_service" {
   source = "./modules/messaging"
 
-  network_id   = docker_network.usualstore_network.id
-  kafka_broker = "kafka:9092"
+  network_id       = docker_network.usualstore_network.id
+  kafka_broker     = "kafka:9092"
+  kafka_dependency = module.kafka_stack.kafka_container_id
 
   depends_on = [module.kafka_stack]
 }
@@ -157,7 +174,5 @@ module "policies" {
   source = "./modules/policies"
 
   network_id = docker_network.usualstore_network.id
-
-  policy_files = var.policy_files
 }
 

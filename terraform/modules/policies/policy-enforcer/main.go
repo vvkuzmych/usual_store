@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,10 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 )
 
 type PolicyEnforcer struct {
@@ -80,7 +84,7 @@ func (e *PolicyEnforcer) MonitorDockerEvents() {
 	}
 }
 
-func (e *PolicyEnforcer) handleDockerEvent(event types.EventMessage) {
+func (e *PolicyEnforcer) handleDockerEvent(event events.Message) {
 	switch event.Action {
 	case "start":
 		log.Printf("Container started: %s\n", event.Actor.Attributes["name"])
@@ -115,21 +119,27 @@ func (e *PolicyEnforcer) validateContainer(containerID string) {
 	}
 
 	// Check security policy
-	if violations := e.checkPolicy("usualstore/security/security_violations", input); len(violations) > 0 {
-		log.Printf("⚠️  Security violations for container %s:\n", container.Name)
-		for _, v := range violations {
-			log.Printf("  - %v\n", v)
+	if violations := e.checkPolicy("usualstore/security/security_violations", input); violations != nil {
+		if violationList, ok := violations.([]interface{}); ok && len(violationList) > 0 {
+			log.Printf("⚠️  Security violations for container %s:\n", container.Name)
+			for _, v := range violationList {
+				log.Printf("  - %v\n", v)
+			}
 		}
 	}
 
 	// Check network policy
-	if allowed := e.checkPolicy("usualstore/network/allow", input); !allowed {
-		log.Printf("❌ Network policy violation for container %s\n", container.Name)
+	if allowed := e.checkPolicy("usualstore/network/allow", input); allowed != nil {
+		if allowedBool, ok := allowed.(bool); ok && !allowedBool {
+			log.Printf("❌ Network policy violation for container %s\n", container.Name)
+		}
 	}
 
 	// Check resource limits
-	if valid := e.checkPolicy("usualstore/resources/valid_resources", input); !valid {
-		log.Printf("⚠️  Resource limit recommendations for container %s\n", container.Name)
+	if valid := e.checkPolicy("usualstore/resources/valid_resources", input); valid != nil {
+		if validBool, ok := valid.(bool); ok && !validBool {
+			log.Printf("⚠️  Resource limit recommendations for container %s\n", container.Name)
+		}
 	}
 }
 
@@ -137,9 +147,13 @@ func (e *PolicyEnforcer) checkPolicy(policyPath string, input map[string]interfa
 	url := fmt.Sprintf("%s/v1/data/%s", e.opaServer, policyPath)
 
 	reqBody := OPARequest{Input: input}
-	reqJSON, _ := json.Marshal(reqBody)
+	reqJSON, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Printf("Failed to marshal OPA request: %v\n", err)
+		return nil
+	}
 
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		log.Printf("Failed to create OPA request: %v\n", err)
 		return nil
@@ -175,7 +189,7 @@ func (e *PolicyEnforcer) PeriodicComplianceCheck() {
 
 func (e *PolicyEnforcer) runComplianceCheck() {
 	ctx := context.Background()
-	containers, err := e.dockerClient.ContainerList(ctx, types.ContainerListOptions{})
+	containers, err := e.dockerClient.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		log.Printf("Failed to list containers: %v\n", err)
 		return
@@ -183,8 +197,8 @@ func (e *PolicyEnforcer) runComplianceCheck() {
 
 	log.Printf("Checking %d containers for compliance\n", len(containers))
 
-	for _, container := range containers {
-		e.validateContainer(container.ID)
+	for _, ctr := range containers {
+		e.validateContainer(ctr.ID)
 	}
 }
 
@@ -242,10 +256,10 @@ func getVolumeMounts(binds []string) []map[string]string {
 	return result
 }
 
-func getExposedPorts(ports map[string]struct{}) []string {
+func getExposedPorts(ports nat.PortSet) []string {
 	var result []string
 	for port := range ports {
-		result = append(result, port)
+		result = append(result, string(port))
 	}
 	return result
 }

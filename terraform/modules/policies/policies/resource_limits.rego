@@ -163,25 +163,25 @@ utilization := {
 }
 
 # Recommendations for resource optimization
-recommendations[msg] {
+recommendations contains msg if {
     utilization.cpu_percent < 50
     msg := sprintf("Container %s CPU is underutilized: %.1f%%. Consider reducing allocation.", 
         [input.container_name, utilization.cpu_percent])
 }
 
-recommendations[msg] {
+recommendations contains msg if {
     utilization.memory_percent < 50
     msg := sprintf("Container %s memory is underutilized: %.1f%%. Consider reducing allocation.", 
         [input.container_name, utilization.memory_percent])
 }
 
-recommendations[msg] {
+recommendations contains msg if {
     utilization.cpu_percent > 90
     msg := sprintf("Container %s CPU is highly utilized: %.1f%%. Consider increasing allocation.", 
         [input.container_name, utilization.cpu_percent])
 }
 
-recommendations[msg] {
+recommendations contains msg if {
     utilization.memory_percent > 90
     msg := sprintf("Container %s memory is highly utilized: %.1f%%. Consider increasing allocation.", 
         [input.container_name, utilization.memory_percent])
