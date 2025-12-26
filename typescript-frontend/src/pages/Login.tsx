@@ -104,7 +104,7 @@ const Login = () => {
             </Typography>
             <Typography variant="body2">
               Email: admin@example.com<br />
-              Password: qwerty
+              Password: qwerty12
             </Typography>
           </Alert>
         </CardContent>

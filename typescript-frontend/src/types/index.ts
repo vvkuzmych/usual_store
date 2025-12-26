@@ -18,6 +18,7 @@ export interface User {
   first_name: string;
   last_name: string;
   email: string;
+  role?: string;
 }
 
 // Auth types
@@ -27,11 +28,17 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
+  error: boolean;
+  message: string;
   authentication_token: {
     token: string;
     expiry: string;
   };
-  user: User;
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
 }
 
 // Payment types
