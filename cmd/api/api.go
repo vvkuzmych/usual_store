@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 	"usual_store/internal/driver"
-	"usual_store/internal/messaging"
 	"usual_store/internal/models"
 
 	// "usual_store/internal/telemetry"  // Temporarily disabled for certificate issues
@@ -40,11 +39,6 @@ type config struct {
 		username string
 		password string
 	}
-	kafka struct {
-		enabled bool
-		brokers []string
-		topic   string
-	}
 	secretkey string
 	frontend  string
 }
@@ -56,7 +50,6 @@ type application struct {
 	errorLog          *log.Logger
 	version           string
 	DB                models.DBModel
-	messagingProducer *messaging.Producer
 	tokenService      service.TokenService
 	telemetryShutdown func(context.Context) error
 }
