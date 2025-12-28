@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   AppBar,
@@ -23,6 +23,7 @@ import {
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
@@ -65,6 +66,12 @@ const Header = () => {
   const handleLogout = () => {
     handleClose();
     logout();
+  };
+
+  const handleAdminClick = () => {
+    handleClose();
+    // Use window.location for full page navigation so Kong can route to support-frontend
+    window.location.href = '/admin/users';
   };
 
   return (
@@ -191,9 +198,7 @@ const Header = () => {
                   </MenuItem>
                   {(user?.role === 'admin' || user?.role === 'super_admin') && (
                     <MenuItem
-                      component={RouterLink}
-                      to="/admin/users"
-                      onClick={handleClose}
+                      onClick={handleAdminClick}
                       sx={{
                         bgcolor: 'rgba(255, 193, 7, 0.1)',
                         fontWeight: 'bold',

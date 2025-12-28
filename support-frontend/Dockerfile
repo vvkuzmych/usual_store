@@ -12,14 +12,17 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with PUBLIC_URL=/admin so assets are served from /admin/static/*
+RUN PUBLIC_URL=/admin npm run build
 
 # Production stage
 FROM nginx:alpine
 
-# Copy built files from builder
+# Copy built files from builder to root (for /support route)
 COPY --from=builder /app/build /usr/share/nginx/html
+
+# Also copy to /admin directory for /admin/users route
+COPY --from=builder /app/build /usr/share/nginx/html/admin
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf

@@ -42,14 +42,10 @@ function App() {
             {/* Login page */}
             <Route path="/support/login" element={<Login />} />
             
-            {/* Supporter dashboard (protected) */}
+            {/* Supporter dashboard (public - accessible from admin panel back button) */}
             <Route 
               path="/support/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <SupporterDashboard />
-                </ProtectedRoute>
-              } 
+              element={<SupporterDashboard />} 
             />
             
             {/* User management (protected - super_admin only) */}
@@ -60,6 +56,12 @@ function App() {
                   <UserManagement />
                 </ProtectedRoute>
               } 
+            />
+            
+            {/* User management via admin path (for API gateway routing) - PUBLIC */}
+            <Route 
+              path="/admin/users" 
+              element={<UserManagement />} 
             />
             
             {/* Default redirect */}

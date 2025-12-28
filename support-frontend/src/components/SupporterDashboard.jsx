@@ -64,7 +64,7 @@ function SupporterDashboard() {
       ws.current.close();
     }
     logout();
-    navigate('/support/login');
+    window.location.href = 'http://localhost:8000';
   };
 
   const handleMenuClick = (event) => {
