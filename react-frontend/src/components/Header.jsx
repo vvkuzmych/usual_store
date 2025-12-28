@@ -18,6 +18,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 
 const Header = () => {
@@ -188,6 +189,23 @@ const Header = () => {
                       {user?.firstName || user?.email}
                     </Typography>
                   </MenuItem>
+                  {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                    <MenuItem
+                      component={RouterLink}
+                      to="/admin/users"
+                      onClick={handleClose}
+                      sx={{
+                        bgcolor: 'rgba(255, 193, 7, 0.1)',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 193, 7, 0.2)',
+                        },
+                      }}
+                    >
+                      <AdminIcon fontSize="small" sx={{ mr: 1, color: '#ff9800' }} />
+                      Login as Admin
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
                     Logout

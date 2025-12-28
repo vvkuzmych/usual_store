@@ -36,6 +36,8 @@ docs/
 | [TERRAFORM-INFRASTRUCTURE.md](TERRAFORM-INFRASTRUCTURE.md) | Terraform infrastructure overview |
 | [KUBERNETES-README.md](guides/KUBERNETES-README.md) | Kubernetes deployment guide |
 | [KUBERNETES-DASHBOARD-GUIDE.md](guides/KUBERNETES-DASHBOARD-GUIDE.md) | Kubernetes dashboard & monitoring |
+| [AWS-LAMBDA-GUIDE.md](../terraform-tenants/AWS-LAMBDA-GUIDE.md) | **AWS Lambda + RDS deployment** ⭐ |
+| [MONGODB-GUIDE.md](../terraform-tenants/MONGODB-GUIDE.md) | **MongoDB option** (local & AWS) 🍃 |
 | [IPv6-SUCCESS.md](guides/IPv6-SUCCESS.md) | IPv6 implementation |
 | [GITHUB-ACTIONS-CACHE-FIX.md](guides/GITHUB-ACTIONS-CACHE-FIX.md) | CI/CD cache optimization |
 
@@ -66,6 +68,13 @@ docs/
 |----------|-------------|
 | [REACT-REDUX-FRONTEND.md](guides/REACT-REDUX-FRONTEND.md) | Redux frontend implementation |
 | [AI-ASSISTANT-README.md](guides/AI-ASSISTANT-README.md) | AI assistant integration |
+
+### Multi-Tenancy (Terraform-Based)
+| Document | Description |
+|----------|-------------|
+| [SIMPLIFIED-ARCHITECTURE.md](../terraform-tenants/SIMPLIFIED-ARCHITECTURE.md) | NO master DB - complete separation |
+| [terraform-tenants/README.md](../terraform-tenants/README.md) | Interactive script to add customers |
+| [MULTI-TENANT-ARCHITECTURE.md](../MULTI-TENANT-ARCHITECTURE.md) | Architecture overview & responsibilities |
 
 ### Development & Testing
 | Document | Description |
