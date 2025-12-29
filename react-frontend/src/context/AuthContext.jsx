@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }) => {
         email: response.email,
         firstName: response.first_name,
         lastName: response.last_name,
+        role: response.role,
       };
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));

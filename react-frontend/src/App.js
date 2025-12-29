@@ -14,6 +14,7 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ResetPassword from './pages/ResetPassword';
+import AdminUsers from './pages/AdminUsers';
 import ChatWidget from './components/ChatWidget';
 import SupportChatWidget from './components/SupportChatWidget';
 
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
               </Routes>
             </main>
             <Footer />

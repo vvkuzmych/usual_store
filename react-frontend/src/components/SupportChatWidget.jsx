@@ -20,9 +20,9 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-// Support service runs on port 5001
-const API_URL = 'http://localhost:5001';
-const WS_URL = 'ws://localhost:5001';
+// Support service accessed through API Gateway
+const API_URL = '';  // Use relative URLs to go through API Gateway
+const WS_URL = `ws://${window.location.host}`;
 
 function SupportChatWidget() {
   const [isOpen, setIsOpen] = useState(false);

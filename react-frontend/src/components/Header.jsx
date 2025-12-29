@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   AppBar,
@@ -18,10 +18,12 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
@@ -64,6 +66,12 @@ const Header = () => {
   const handleLogout = () => {
     handleClose();
     logout();
+  };
+
+  const handleAdminClick = () => {
+    handleClose();
+    // Use window.location for full page navigation so Kong can route to support-frontend
+    window.location.href = '/admin/users';
   };
 
   return (
@@ -188,6 +196,21 @@ const Header = () => {
                       {user?.firstName || user?.email}
                     </Typography>
                   </MenuItem>
+                  {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                    <MenuItem
+                      onClick={handleAdminClick}
+                      sx={{
+                        bgcolor: 'rgba(255, 193, 7, 0.1)',
+                        fontWeight: 'bold',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 193, 7, 0.2)',
+                        },
+                      }}
+                    >
+                      <AdminIcon fontSize="small" sx={{ mr: 1, color: '#ff9800' }} />
+                      Login as Admin
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
                     Logout

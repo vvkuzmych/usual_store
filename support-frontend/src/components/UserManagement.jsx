@@ -382,7 +382,7 @@ The Usual Store Team
         <Toolbar>
           <IconButton
             color="inherit"
-            onClick={() => navigate('/support/dashboard')}
+            onClick={() => window.location.href = 'http://localhost:8000/support/dashboard'}
             sx={{ mr: 2 }}
           >
             <ArrowBackIcon />

@@ -176,3 +176,25 @@ module "policies" {
   network_id = docker_network.usualstore_network.id
 }
 
+# API Gateway (Kong)
+module "api_gateway" {
+  source = "./modules/api-gateway"
+
+  network_name  = docker_network.usualstore_network.name
+  gateway_port  = 8000
+  admin_port    = 8001
+  backend_port  = var.api_port
+
+  depends_on = [module.backend_api, module.ai_assistant, module.support_service]
+}
+
+# Outputs
+output "api_gateway_url" {
+  value       = module.api_gateway.gateway_url
+  description = "API Gateway URL - use this for all API requests"
+}
+
+output "api_gateway_admin_url" {
+  value       = module.api_gateway.admin_url
+  description = "Kong Admin API URL for configuration"
+}
