@@ -123,6 +123,44 @@ func (s *Service) HandleChat(req ChatRequest) (*ChatResponse, error) {
 	return aiResp, nil
 }
 
+// HandleVoiceInput processes voice input: converts speech to text and processes through chat
+// Returns both the transcription and the chat response
+func (s *Service) HandleVoiceInput(audioData []byte, sessionID, language string) (string, *ChatResponse, error) {
+	// Convert speech to text
+	text, err := s.aiClient.SpeechToText(audioData, language)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to convert speech to text: %w", err)
+	}
+
+	if text == "" {
+		return "", nil, fmt.Errorf("no text extracted from audio")
+	}
+
+	// Process the transcribed text through the chat system
+	chatReq := ChatRequest{
+		SessionID: sessionID,
+		Message:   text,
+		UserID:    nil, // TODO: Extract from session if authenticated
+	}
+
+	chatResp, err := s.HandleChat(chatReq)
+	if err != nil {
+		return text, nil, fmt.Errorf("failed to process chat: %w", err)
+	}
+
+	return text, chatResp, nil
+}
+
+// HandleVoiceOutput converts text response to speech
+func (s *Service) HandleVoiceOutput(text, voice string) ([]byte, error) {
+	audioData, err := s.aiClient.TextToSpeech(text, voice)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert text to speech: %w", err)
+	}
+
+	return audioData, nil
+}
+
 // getOrCreateConversation gets an existing conversation or creates a new one
 func (s *Service) getOrCreateConversation(sessionID string, userID *int) (*Conversation, error) {
 	// If no session ID, create one

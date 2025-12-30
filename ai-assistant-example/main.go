@@ -57,6 +57,7 @@ func main() {
 
 	// Register AI routes
 	mux.HandleFunc("/api/ai/chat", aiHandler.EnableCORS(aiHandler.HandleChatRequest))
+	mux.HandleFunc("/api/ai/voice", aiHandler.EnableCORS(aiHandler.HandleVoiceRequest))
 	mux.HandleFunc("/api/ai/feedback", aiHandler.EnableCORS(aiHandler.HandleFeedback))
 	mux.HandleFunc("/api/ai/stats", aiHandler.EnableCORS(aiHandler.HandleStats))
 
@@ -77,6 +78,7 @@ func main() {
 	log.Printf("AI Assistant API server starting on port %s", port)
 	log.Printf("Endpoints:")
 	log.Printf("  POST   /api/ai/chat       - Send chat message")
+	log.Printf("  POST   /api/ai/voice      - Send voice message (speech-to-text + chat)")
 	log.Printf("  POST   /api/ai/feedback   - Submit feedback")
 	log.Printf("  GET    /api/ai/stats      - Get statistics")
 	log.Printf("  GET    /health            - Health check")

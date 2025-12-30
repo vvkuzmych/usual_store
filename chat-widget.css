@@ -348,6 +348,7 @@
     background: white;
     border-top: 1px solid #e0e0e0;
     gap: 10px;
+    align-items: center;
 }
 
 .chat-input input {
@@ -390,6 +391,99 @@
 .chat-send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Voice Button */
+.voice-btn {
+    padding: 12px;
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.voice-btn:hover:not(:disabled) {
+    background: #e9ecef;
+    border-color: #007bff;
+    transform: scale(1.05);
+}
+
+.voice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-btn.recording {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+}
+
+/* Voice Options */
+.voice-options {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    font-size: 12px;
+}
+
+.voice-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #666;
+}
+
+.voice-options input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.voice-options input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Play Audio Button */
+.play-audio-btn {
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.play-audio-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
 /* Timestamp */

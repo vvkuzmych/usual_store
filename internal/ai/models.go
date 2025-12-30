@@ -134,4 +134,6 @@ type DB interface {
 type AIClient interface {
 	GenerateResponse(messages []Message, context string) (*ChatResponse, error)
 	GetEmbedding(text string) ([]float64, error)
+	SpeechToText(audioData []byte, language string) (string, error)
+	TextToSpeech(text, voice string) ([]byte, error)
 }

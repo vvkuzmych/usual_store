@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"time"
 )
@@ -12,6 +13,8 @@ import (
 const (
 	OpenAIAPIURL       = "https://api.openai.com/v1/chat/completions"
 	OpenAIEmbeddingURL = "https://api.openai.com/v1/embeddings"
+	OpenAIWhisperURL   = "https://api.openai.com/v1/audio/transcriptions"
+	OpenAITTSURL       = "https://api.openai.com/v1/audio/speech"
 )
 
 // OpenAIClient implements AIClient interface
@@ -290,4 +293,124 @@ func (c *OpenAIClient) CalculateCost(tokens int) float64 {
 	}
 
 	return float64(tokens) / 1000.0 * costPer1K
+}
+
+// SpeechToText converts audio to text using OpenAI Whisper API
+func (c *OpenAIClient) SpeechToText(audioData []byte, language string) (string, error) {
+	// Create multipart form data
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+
+	// Add model field
+	if err := writer.WriteField("model", "whisper-1"); err != nil {
+		return "", fmt.Errorf("failed to write model field: %w", err)
+	}
+
+	// Add language field if provided
+	if language != "" {
+		if err := writer.WriteField("language", language); err != nil {
+			return "", fmt.Errorf("failed to write language field: %w", err)
+		}
+	}
+
+	// Add file field
+	part, err := writer.CreateFormFile("file", "audio.webm")
+	if err != nil {
+		return "", fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(audioData); err != nil {
+		return "", fmt.Errorf("failed to write audio data: %w", err)
+	}
+
+	// Close the multipart writer
+	if err := writer.Close(); err != nil {
+		return "", fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create request
+	req, err := http.NewRequest("POST", OpenAIWhisperURL, &requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIKey))
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Check for errors
+	if resp.StatusCode != http.StatusOK {
+		var apiErr openAIError
+		if err := json.Unmarshal(body, &apiErr); err == nil {
+			return "", fmt.Errorf("OpenAI API error: %s", apiErr.Error.Message)
+		}
+		return "", fmt.Errorf("OpenAI API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var result struct {
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return result.Text, nil
+}
+
+// TextToSpeech converts text to speech using OpenAI TTS API
+func (c *OpenAIClient) TextToSpeech(text, voice string) ([]byte, error) {
+	if voice == "" {
+		voice = "alloy" // Default voice: alloy, echo, fable, onyx, nova, shimmer
+	}
+
+	reqBody := map[string]interface{}{
+		"model": "tts-1",
+		"input": text,
+		"voice": voice,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", OpenAITTSURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIKey))
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Check for errors
+	if resp.StatusCode != http.StatusOK {
+		var apiErr openAIError
+		if err := json.Unmarshal(body, &apiErr); err == nil {
+			return nil, fmt.Errorf("OpenAI API error: %s", apiErr.Error.Message)
+		}
+		return nil, fmt.Errorf("OpenAI API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
 }
