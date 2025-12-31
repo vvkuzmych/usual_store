@@ -7,7 +7,11 @@ const ChatWidget = ({ apiUrl = '' }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(`session-${Date.now()}`);
+  const [isRecording, setIsRecording] = useState(false);
+  const [useVoiceResponse, setUseVoiceResponse] = useState(false);
   const messagesEndRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     // Welcome message
@@ -99,6 +103,126 @@ const ChatWidget = ({ apiUrl = '' }) => {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await sendVoiceMessage(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Unable to access microphone. Please check your permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const sendVoiceMessage = async (audioBlob) => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+
+    // Show user message indicating voice input
+    const userMessage = {
+      id: messages.length,
+      role: 'user',
+      content: '🎤 [Voice message]',
+      timestamp: new Date(),
+      isVoice: true
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('session_id', sessionId);
+      formData.append('return_audio', useVoiceResponse.toString());
+      formData.append('voice', 'alloy'); // Default voice
+
+      const response = await fetch(`${apiUrl}/api/ai/voice`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process voice message');
+      }
+
+      if (useVoiceResponse && response.headers.get('content-type')?.includes('audio')) {
+        // Handle audio response
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        const assistantMessage = {
+          id: messages.length + 1,
+          role: 'assistant',
+          content: '🔊 [Audio response]',
+          timestamp: new Date(),
+          audioUrl: audioUrl,
+          isVoice: true
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // Auto-play audio response
+        audio.play();
+      } else {
+        // Handle text response
+        const data = await response.json();
+        
+        const assistantMessage = {
+          id: messages.length + 1,
+          role: 'assistant',
+          content: data.message || data.transcription,
+          timestamp: new Date(),
+          products: data.products,
+          suggestions: data.suggestions
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      }
+
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      const errorMessage = {
+        id: messages.length + 1,
+        role: 'assistant',
+        content: 'Sorry, I had trouble processing your voice message. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const playAudio = (audioUrl) => {
+    const audio = new Audio(audioUrl);
+    audio.play();
+  };
+
   const submitFeedback = async (messageId, helpful) => {
     try {
       await fetch(`${apiUrl}/api/ai/feedback`, {
@@ -151,6 +275,15 @@ const ChatWidget = ({ apiUrl = '' }) => {
               <div key={msg.id} className={`message ${msg.role}-message`}>
                 <div className="message-content">
                   {msg.content}
+                  {msg.audioUrl && (
+                    <button 
+                      className="play-audio-btn"
+                      onClick={() => playAudio(msg.audioUrl)}
+                      title="Play audio"
+                    >
+                      🔊 Play
+                    </button>
+                  )}
                 </div>
                 <div className="message-time">
                   {formatTime(msg.timestamp)}
@@ -222,15 +355,35 @@ const ChatWidget = ({ apiUrl = '' }) => {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything..."
-              disabled={isLoading}
+              disabled={isLoading || isRecording}
             />
+            <button
+              className={`voice-btn ${isRecording ? 'recording' : ''}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading}
+              title={isRecording ? 'Stop recording' : 'Record voice message'}
+            >
+              {isRecording ? '⏹️' : '🎤'}
+            </button>
             <button 
               className="chat-send-btn"
               onClick={sendMessage} 
-              disabled={isLoading || !inputMessage.trim()}
+              disabled={isLoading || !inputMessage.trim() || isRecording}
             >
               Send
             </button>
+          </div>
+          {/* Voice response toggle */}
+          <div className="voice-options">
+            <label>
+              <input
+                type="checkbox"
+                checked={useVoiceResponse}
+                onChange={(e) => setUseVoiceResponse(e.target.checked)}
+                disabled={isLoading || isRecording}
+              />
+              <span>Get audio response</span>
+            </label>
           </div>
         </div>
       )}

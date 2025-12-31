@@ -890,6 +890,8 @@ func TestNewService(t *testing.T) {
 type MockAIClient struct {
 	GenerateResponseFunc func(messages []Message, context string) (*ChatResponse, error)
 	GetEmbeddingFunc     func(text string) ([]float64, error)
+	SpeechToTextFunc     func(audioData []byte, language string) (string, error)
+	TextToSpeechFunc     func(text, voice string) ([]byte, error)
 }
 
 func (m *MockAIClient) GenerateResponse(messages []Message, context string) (*ChatResponse, error) {
@@ -908,4 +910,18 @@ func (m *MockAIClient) GetEmbedding(text string) ([]float64, error) {
 		return m.GetEmbeddingFunc(text)
 	}
 	return []float64{0.1, 0.2, 0.3}, nil
+}
+
+func (m *MockAIClient) SpeechToText(audioData []byte, language string) (string, error) {
+	if m.SpeechToTextFunc != nil {
+		return m.SpeechToTextFunc(audioData, language)
+	}
+	return "Test transcription", nil
+}
+
+func (m *MockAIClient) TextToSpeech(text, voice string) ([]byte, error) {
+	if m.TextToSpeechFunc != nil {
+		return m.TextToSpeechFunc(text, voice)
+	}
+	return []byte("test audio data"), nil
 }

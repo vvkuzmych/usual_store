@@ -16,6 +16,10 @@ class ChatWidget {
         this.messages = [];
         this.isOpen = false;
         this.isLoading = false;
+        this.isRecording = false;
+        this.useVoiceResponse = false;
+        this.mediaRecorder = null;
+        this.audioChunks = [];
 
         this.init();
     }
@@ -53,7 +57,14 @@ class ChatWidget {
             <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-input">
                 <input type="text" id="chat-input-field" placeholder="Ask me anything..." />
+                <button class="voice-btn" id="voice-btn" title="Record voice message">🎤</button>
                 <button class="chat-send-btn" id="chat-send-btn">Send</button>
+            </div>
+            <div class="voice-options">
+                <label>
+                    <input type="checkbox" id="voice-response-toggle" />
+                    <span>Get audio response</span>
+                </label>
             </div>
         `;
         container.appendChild(this.widget);
@@ -62,6 +73,8 @@ class ChatWidget {
         this.messagesContainer = this.widget.querySelector('#chat-messages');
         this.inputField = this.widget.querySelector('#chat-input-field');
         this.sendBtn = this.widget.querySelector('#chat-send-btn');
+        this.voiceBtn = this.widget.querySelector('#voice-btn');
+        this.voiceToggle = this.widget.querySelector('#voice-response-toggle');
         this.closeBtn = this.widget.querySelector('.chat-close-btn');
     }
 
@@ -69,6 +82,16 @@ class ChatWidget {
         this.toggleBtn.addEventListener('click', () => this.open());
         this.closeBtn.addEventListener('click', () => this.close());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
+        this.voiceBtn.addEventListener('click', () => {
+            if (this.isRecording) {
+                this.stopRecording();
+            } else {
+                this.startRecording();
+            }
+        });
+        this.voiceToggle.addEventListener('change', (e) => {
+            this.useVoiceResponse = e.target.checked;
+        });
         this.inputField.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -111,7 +134,10 @@ class ChatWidget {
         const time = this.formatTime(message.timestamp);
 
         let html = `
-            <div class="message-content">${this.escapeHtml(message.content)}</div>
+            <div class="message-content">
+                ${this.escapeHtml(message.content)}
+                ${message.audioUrl ? `<button class="play-audio-btn" data-audio-url="${message.audioUrl}" title="Play audio">🔊 Play</button>` : ''}
+            </div>
             <div class="message-time">${time}</div>
         `;
 
@@ -174,6 +200,16 @@ class ChatWidget {
             });
         });
 
+        // Attach play audio handlers
+        messageDiv.querySelectorAll('.play-audio-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const audioUrl = e.target.dataset.audioUrl;
+                if (audioUrl) {
+                    this.playAudio(audioUrl);
+                }
+            });
+        });
+
         this.messagesContainer.appendChild(messageDiv);
     }
 
@@ -233,10 +269,131 @@ class ChatWidget {
         }
     }
 
+    async startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'audio/webm;codecs=opus'
+            });
+            
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.audioChunks.push(event.data);
+                }
+            };
+
+            this.mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                await this.sendVoiceMessage(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            this.mediaRecorder.start();
+            this.isRecording = true;
+            this.voiceBtn.textContent = '⏹️';
+            this.voiceBtn.classList.add('recording');
+            this.voiceBtn.title = 'Stop recording';
+            this.inputField.disabled = true;
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Unable to access microphone. Please check your permissions.');
+        }
+    }
+
+    stopRecording() {
+        if (this.mediaRecorder && this.isRecording) {
+            this.mediaRecorder.stop();
+            this.isRecording = false;
+            this.voiceBtn.textContent = '🎤';
+            this.voiceBtn.classList.remove('recording');
+            this.voiceBtn.title = 'Record voice message';
+            this.inputField.disabled = false;
+        }
+    }
+
+    async sendVoiceMessage(audioBlob) {
+        if (this.isLoading) return;
+
+        this.setLoading(true);
+
+        // Show user message indicating voice input
+        this.addMessage({
+            role: 'user',
+            content: '🎤 [Voice message]',
+            timestamp: new Date(),
+            isVoice: true
+        });
+
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.webm');
+            formData.append('session_id', this.sessionId);
+            formData.append('return_audio', this.useVoiceResponse.toString());
+            formData.append('voice', 'alloy');
+
+            const response = await fetch(`${this.config.apiUrl}/api/ai/voice`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to process voice message');
+            }
+
+            if (this.useVoiceResponse && response.headers.get('content-type')?.includes('audio')) {
+                // Handle audio response
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                this.addMessage({
+                    role: 'assistant',
+                    content: '🔊 [Audio response]',
+                    timestamp: new Date(),
+                    audioUrl: audioUrl,
+                    isVoice: true
+                });
+                
+                // Auto-play audio response
+                audio.play();
+            } else {
+                // Handle text response
+                const data = await response.json();
+                
+                this.addMessage({
+                    id: Date.now(),
+                    role: 'assistant',
+                    content: data.message || data.transcription,
+                    timestamp: new Date(),
+                    products: data.products || [],
+                    suggestions: data.suggestions || []
+                });
+            }
+
+        } catch (error) {
+            console.error('Error sending voice message:', error);
+            this.addMessage({
+                role: 'assistant',
+                content: '❌ Sorry, I had trouble processing your voice message. Please try again.',
+                timestamp: new Date()
+            });
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    playAudio(audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.play();
+    }
+
     setLoading(loading) {
         this.isLoading = loading;
         this.sendBtn.disabled = loading;
-        this.inputField.disabled = loading;
+        this.inputField.disabled = loading || this.isRecording;
+        this.voiceBtn.disabled = loading;
 
         if (loading) {
             // Add typing indicator

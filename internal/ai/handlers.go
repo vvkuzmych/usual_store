@@ -2,6 +2,7 @@ package ai
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -142,6 +143,7 @@ func (h *Handler) HandleStats(w http.ResponseWriter, r *http.Request) {
 // RegisterRoutes registers all AI assistant routes
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/ai/chat", h.HandleChatRequest)
+	mux.HandleFunc("/api/ai/voice", h.HandleVoiceRequest)
 	mux.HandleFunc("/api/ai/feedback", h.HandleFeedback)
 	mux.HandleFunc("/api/ai/stats", h.HandleStats)
 }
@@ -159,6 +161,140 @@ func (h *Handler) EnableCORS(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		next(w, r)
+	}
+}
+
+// HandleVoiceRequest handles POST /api/ai/voice
+// Accepts audio file (multipart/form-data) and optionally returns audio response
+func (h *Handler) HandleVoiceRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse multipart form (max 10MB)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		h.logger.Printf("Error parsing multipart form: %v", err)
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
+
+	// Get session ID
+	sessionID := r.FormValue("session_id")
+	if sessionID == "" {
+		http.Error(w, "Session ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get optional parameters
+	language := r.FormValue("language") // Optional: language code for speech-to-text
+	returnAudio := r.FormValue("return_audio") == "true" // Optional: return audio response
+	voice := r.FormValue("voice") // Optional: voice for TTS (alloy, echo, fable, onyx, nova, shimmer)
+	if voice == "" {
+		voice = "alloy" // Default voice
+	}
+
+	// Get audio file
+	file, header, err := r.FormFile("audio")
+	if err != nil {
+		h.logger.Printf("Error getting audio file: %v", err)
+		http.Error(w, "Audio file is required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Read audio data
+	audioData, err := io.ReadAll(file)
+	if err != nil {
+		h.logger.Printf("Error reading audio file: %v", err)
+		http.Error(w, "Failed to read audio file", http.StatusInternalServerError)
+		return
+	}
+
+	if len(audioData) == 0 {
+		http.Error(w, "Audio file is empty", http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Printf("Received voice request: session=%s, file=%s, size=%d bytes", sessionID, header.Filename, len(audioData))
+
+	// Convert speech to text and process through chat
+	transcription, chatResp, err := h.service.HandleVoiceInput(audioData, sessionID, language)
+	if err != nil {
+		h.logger.Printf("Error processing voice input: %v", err)
+		
+		// Check if it's an OpenAI API key error
+		errMsg := err.Error()
+		if contains(errMsg, "Incorrect API key") || contains(errMsg, "dummy-key") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			if err := json.NewEncoder(w).Encode(map[string]string{
+				"error":   "AI assistant not configured",
+				"message": "Voice assistant needs an OpenAI API key to work. Please configure OPENAI_API_KEY.",
+			}); err != nil {
+				h.logger.Printf("Error encoding error response: %v", err)
+			}
+			return
+		}
+
+		http.Error(w, "Failed to process voice input", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the response text from chat response
+	responseText := transcription
+	if chatResp != nil && chatResp.Message != "" {
+		responseText = chatResp.Message
+	}
+
+	// If return_audio is true, convert response to speech
+	if returnAudio {
+		audioResponse, err := h.service.HandleVoiceOutput(responseText, voice)
+		if err != nil {
+			h.logger.Printf("Error generating audio response: %v", err)
+			// Fall back to text response
+			w.Header().Set("Content-Type", "application/json")
+			response := map[string]interface{}{
+				"session_id":    sessionID,
+				"transcription": transcription,
+				"message":       responseText,
+				"error":         "Failed to generate audio response, returning text",
+			}
+			if chatResp != nil {
+				response["tokens_used"] = chatResp.TokensUsed
+				response["response_time_ms"] = chatResp.ResponseTimeMs
+			}
+			if err := json.NewEncoder(w).Encode(response); err != nil {
+				h.logger.Printf("Error encoding fallback response: %v", err)
+			}
+			return
+		}
+
+		// Return audio response
+		w.Header().Set("Content-Type", "audio/mpeg")
+		w.Header().Set("Content-Disposition", "inline; filename=response.mp3")
+		if _, err := w.Write(audioResponse); err != nil {
+			h.logger.Printf("Error writing audio response: %v", err)
+		}
+		return
+	}
+
+	// Return text response with transcription and chat response
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"session_id":    sessionID,
+		"transcription": transcription,
+		"message":       responseText,
+	}
+	if chatResp != nil {
+		response["tokens_used"] = chatResp.TokensUsed
+		response["response_time_ms"] = chatResp.ResponseTimeMs
+		response["suggestions"] = chatResp.Suggestions
+		response["products"] = chatResp.Products
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
 
