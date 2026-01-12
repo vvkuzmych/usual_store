@@ -20,7 +20,7 @@ func TestDBModel_InsertToken(t *testing.T) {
 		token     *models.Token
 		user      models.User
 		mockSetup func(mock sqlmock.Sqlmock, token *models.Token, user models.User)
-		validate  func(t *testing.T, err error, mockErr error)
+		validate  func(t *testing.T, err error, mock sqlmock.Sqlmock)
 	}{
 		{
 			name: "successful token insertion",
@@ -36,27 +36,18 @@ func TestDBModel_InsertToken(t *testing.T) {
 				Password:  "hashed-password",
 			},
 			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// Expect DELETE query for old tokens
 				mock.ExpectExec("DELETE FROM tokens WHERE user_id = \\$1").
 					WithArgs(user.ID).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
-				// Expect INSERT query for new token
 				mock.ExpectExec("INSERT INTO tokens").
-					WithArgs(
-						user.ID,
-						user.LastName,
-						user.Email,
-						token.Hash,
-						sqlmock.AnyArg(), // expiry
-						sqlmock.AnyArg(), // created_at
-						sqlmock.AnyArg(), // updated_at
-					).
+					WithArgs(user.ID, user.LastName, user.Email, token.Hash,
+						sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
-			validate: func(t *testing.T, err error, mockErr error) {
-				assert.NoError(t, err)
-				assert.NoError(t, mockErr)
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
+				require.NoError(t, err)
+				require.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
 		{
@@ -72,27 +63,18 @@ func TestDBModel_InsertToken(t *testing.T) {
 				Email:     "jane@example.com",
 			},
 			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// DELETE returns 0 rows affected (no existing tokens)
 				mock.ExpectExec("DELETE FROM tokens WHERE user_id = \\$1").
 					WithArgs(user.ID).
 					WillReturnResult(sqlmock.NewResult(0, 0))
 
-				// INSERT new token
 				mock.ExpectExec("INSERT INTO tokens").
-					WithArgs(
-						user.ID,
-						user.LastName,
-						user.Email,
-						token.Hash,
-						sqlmock.AnyArg(),
-						sqlmock.AnyArg(),
-						sqlmock.AnyArg(),
-					).
+					WithArgs(user.ID, user.LastName, user.Email, token.Hash,
+						sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
-			validate: func(t *testing.T, err error, mockErr error) {
-				assert.NoError(t, err)
-				assert.NoError(t, mockErr)
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
+				require.NoError(t, err)
+				require.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
 		{
@@ -108,14 +90,13 @@ func TestDBModel_InsertToken(t *testing.T) {
 				Email:     "john@example.com",
 			},
 			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// DELETE fails
 				mock.ExpectExec("DELETE FROM tokens WHERE user_id = \\$1").
 					WithArgs(user.ID).
 					WillReturnError(errors.New("database connection error"))
 			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "database connection error")
+				require.Contains(t, err.Error(), "database connection error")
 			},
 		},
 		{
@@ -131,27 +112,18 @@ func TestDBModel_InsertToken(t *testing.T) {
 				Email:     "john@example.com",
 			},
 			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// DELETE succeeds
 				mock.ExpectExec("DELETE FROM tokens WHERE user_id = \\$1").
 					WithArgs(user.ID).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
-				// INSERT fails
 				mock.ExpectExec("INSERT INTO tokens").
-					WithArgs(
-						user.ID,
-						user.LastName,
-						user.Email,
-						token.Hash,
-						sqlmock.AnyArg(),
-						sqlmock.AnyArg(),
-						sqlmock.AnyArg(),
-					).
+					WithArgs(user.ID, user.LastName, user.Email, token.Hash,
+						sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 					WillReturnError(errors.New("insert failed"))
 			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "insert failed")
+				require.Contains(t, err.Error(), "insert failed")
 			},
 		},
 		{
@@ -163,15 +135,13 @@ func TestDBModel_InsertToken(t *testing.T) {
 			user: models.User{
 				ID:        1,
 				FirstName: "John",
-				LastName:  "", // Empty last name should fail validation
+				LastName:  "",
 				Email:     "john@example.com",
 			},
-			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// No mock expectations - validation should fail before DB calls
-			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {},
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "LastName")
+				require.Contains(t, err.Error(), "LastName")
 			},
 		},
 		{
@@ -184,14 +154,12 @@ func TestDBModel_InsertToken(t *testing.T) {
 				ID:        1,
 				FirstName: "John",
 				LastName:  "Doe",
-				Email:     "", // Empty email should fail validation
+				Email:     "",
 			},
-			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// No mock expectations - validation should fail before DB calls
-			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {},
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "Email")
+				require.Contains(t, err.Error(), "Email")
 			},
 		},
 		{
@@ -204,14 +172,12 @@ func TestDBModel_InsertToken(t *testing.T) {
 				ID:        1,
 				FirstName: "John",
 				LastName:  "Doe",
-				Email:     "not-an-email", // Invalid email format
+				Email:     "not-an-email",
 			},
-			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// No mock expectations - validation should fail before DB calls
-			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {},
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "Email")
+				require.Contains(t, err.Error(), "Email")
 			},
 		},
 		{
@@ -223,41 +189,29 @@ func TestDBModel_InsertToken(t *testing.T) {
 			user: models.User{
 				ID:        1,
 				FirstName: "John",
-				LastName:  "",              // Missing
-				Email:     "invalid-email", // Invalid format
+				LastName:  "",
+				Email:     "invalid-email",
 			},
-			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {
-				// No mock expectations - validation should fail before DB calls
-			},
-			validate: func(t *testing.T, err error, mockErr error) {
+			mockSetup: func(mock sqlmock.Sqlmock, token *models.Token, user models.User) {},
+			validate: func(t *testing.T, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				// Should contain at least one field error
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock database
 			db, mock, err := sqlmock.New()
 			require.NoError(t, err)
 			defer db.Close()
 
-			// Setup mock expectations
 			tt.mockSetup(mock, tt.token, tt.user)
 
-			// Create repository
 			repo := NewDBModel(db)
-
-			// Execute test
 			ctx := context.Background()
 			err = repo.InsertToken(ctx, tt.token, tt.user)
 
-			// Check mock expectations
-			mockErr := mock.ExpectationsWereMet()
-
-			// Validate results
-			tt.validate(t, err, mockErr)
+			tt.validate(t, err, mock)
 		})
 	}
 }
@@ -267,7 +221,7 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 		name      string
 		token     string
 		mockSetup func(mock sqlmock.Sqlmock, tokenHash [32]byte)
-		validate  func(t *testing.T, user *models.User, err error)
+		validate  func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock)
 	}{
 		{
 			name:  "successful user retrieval with valid token",
@@ -275,18 +229,18 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
 				rows := sqlmock.NewRows([]string{"id", "last_name", "email", "first_name"}).
 					AddRow(1, "Doe", "john@example.com", "John")
-
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnRows(rows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
-				assert.NoError(t, err)
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
+				require.NoError(t, err)
 				require.NotNil(t, user)
-				assert.Equal(t, 1, user.ID)
-				assert.Equal(t, "John", user.FirstName)
-				assert.Equal(t, "Doe", user.LastName)
-				assert.Equal(t, "john@example.com", user.Email)
+				require.Equal(t, 1, user.ID)
+				require.Equal(t, "John", user.FirstName)
+				require.Equal(t, "Doe", user.LastName)
+				require.Equal(t, "john@example.com", user.Email)
+				require.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
 		{
@@ -295,18 +249,18 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
 				rows := sqlmock.NewRows([]string{"id", "last_name", "email", "first_name"}).
 					AddRow(42, "Smith", "jane.smith@example.com", "Jane")
-
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnRows(rows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
-				assert.NoError(t, err)
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
+				require.NoError(t, err)
 				require.NotNil(t, user)
-				assert.Equal(t, 42, user.ID)
-				assert.Equal(t, "Jane", user.FirstName)
-				assert.Equal(t, "Smith", user.LastName)
-				assert.Equal(t, "jane.smith@example.com", user.Email)
+				require.Equal(t, 42, user.ID)
+				require.Equal(t, "Jane", user.FirstName)
+				require.Equal(t, "Smith", user.LastName)
+				require.Equal(t, "jane.smith@example.com", user.Email)
+				require.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
 		{
@@ -317,10 +271,10 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnError(sql.ErrNoRows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, sql.ErrNoRows), "error should be sql.ErrNoRows")
-				assert.Nil(t, user)
+				require.True(t, errors.Is(err, sql.ErrNoRows))
+				require.Nil(t, user)
 			},
 		},
 		{
@@ -331,40 +285,38 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnError(sql.ErrNoRows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, sql.ErrNoRows), "error should be sql.ErrNoRows")
-				assert.Nil(t, user)
+				require.True(t, errors.Is(err, sql.ErrNoRows))
+				require.Nil(t, user)
 			},
 		},
 		{
 			name:  "database connection error",
 			token: "some-token",
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
-				dbErr := errors.New("connection refused")
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
-					WillReturnError(dbErr)
+					WillReturnError(errors.New("connection refused"))
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "connection refused")
-				assert.Nil(t, user)
+				require.Contains(t, err.Error(), "connection refused")
+				require.Nil(t, user)
 			},
 		},
 		{
 			name:  "database query timeout",
 			token: "timeout-token",
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
-				timeoutErr := errors.New("query timeout exceeded")
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
-					WillReturnError(timeoutErr)
+					WillReturnError(errors.New("query timeout exceeded"))
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "timeout")
-				assert.Nil(t, user)
+				require.Contains(t, err.Error(), "timeout")
+				require.Nil(t, user)
 			},
 		},
 		{
@@ -373,14 +325,13 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
 				rows := sqlmock.NewRows([]string{"id", "last_name"}).
 					AddRow(1, "Doe")
-
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnRows(rows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Nil(t, user)
+				require.Nil(t, user)
 			},
 		},
 		{
@@ -389,14 +340,13 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
 				rows := sqlmock.NewRows([]string{"id", "last_name", "email", "first_name"}).
 					AddRow("not-an-int", "Doe", "john@example.com", "John")
-
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnRows(rows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.Nil(t, user)
+				require.Nil(t, user)
 			},
 		},
 		{
@@ -407,10 +357,9 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnError(sql.ErrNoRows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, sql.ErrNoRows), "error should be sql.ErrNoRows")
-				assert.Nil(t, user)
+				require.Nil(t, user)
 			},
 		},
 		{
@@ -419,48 +368,36 @@ func TestDBModel_GetUserForToken(t *testing.T) {
 			mockSetup: func(mock sqlmock.Sqlmock, tokenHash [32]byte) {
 				rows := sqlmock.NewRows([]string{"id", "last_name", "email", "first_name"}).
 					AddRow(5, "Anonymous", "anonymous@example.com", "")
-
 				mock.ExpectQuery("SELECT (.+) FROM users u INNER JOIN tokens t").
 					WithArgs(tokenHash[:], sqlmock.AnyArg()).
 					WillReturnRows(rows)
 			},
-			validate: func(t *testing.T, user *models.User, err error) {
-				assert.NoError(t, err)
+			validate: func(t *testing.T, user *models.User, err error, mock sqlmock.Sqlmock) {
+				require.NoError(t, err)
 				require.NotNil(t, user)
-				assert.Equal(t, 5, user.ID)
-				assert.Equal(t, "", user.FirstName)
-				assert.Equal(t, "Anonymous", user.LastName)
-				assert.Equal(t, "anonymous@example.com", user.Email)
+				require.Equal(t, 5, user.ID)
+				require.Equal(t, "", user.FirstName)
+				require.Equal(t, "Anonymous", user.LastName)
+				require.Equal(t, "anonymous@example.com", user.Email)
+				require.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock database
 			db, mock, err := sqlmock.New()
-			require.NoError(t, err, "failed to create mock database")
+			require.NoError(t, err)
 			defer db.Close()
 
-			// Calculate token hash
 			tokenHash := sha256.Sum256([]byte(tt.token))
-
-			// Setup mock expectations
 			tt.mockSetup(mock, tokenHash)
 
-			// Create repository
 			repo := NewDBModel(db)
-			require.NotNil(t, repo)
-
-			// Execute test
 			ctx := context.Background()
 			user, err := repo.GetUserForToken(ctx, tt.token)
 
-			// Validate results
-			tt.validate(t, user, err)
-
-			// Ensure all mock expectations were met
-			assert.NoError(t, mock.ExpectationsWereMet())
+			tt.validate(t, user, err, mock)
 		})
 	}
 }
