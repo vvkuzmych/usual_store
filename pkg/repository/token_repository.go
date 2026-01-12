@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"time"
 	"usual_store/internal/models"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // TokenRepository defines the methods for token-related database operations.
