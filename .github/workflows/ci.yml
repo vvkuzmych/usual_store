@@ -68,15 +68,16 @@ jobs:
     #     args: --timeout=5m
 
     - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      run: go test -race ./...
+      
+    # Coverage disabled temporarily due to "no such tool covdata" issue with Go 1.25
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     file: ./coverage.out
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false
 
   build:
     name: Build Application
