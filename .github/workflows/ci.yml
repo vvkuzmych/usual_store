@@ -33,7 +33,7 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Clean Go module cache (fixes tar conflicts)
-      run: rm -rf ~/go/pkg/mod
+      run: go clean -modcache
 
     - name: Download dependencies
       run: go mod download
