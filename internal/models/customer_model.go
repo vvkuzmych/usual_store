@@ -29,7 +29,6 @@ func (m *DBModel) InsertCustomer(customer Customer) error {
 
 	_, err := m.DB.ExecContext(ctx, insertQuery, customer.FirstName, customer.LastName, customer.Email)
 	if err != nil {
-		logQueryError("InsertCustomer", insertQuery, customer, err)
 		return fmt.Errorf("failed to insert customer: %w", err)
 	}
 

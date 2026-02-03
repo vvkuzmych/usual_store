@@ -215,16 +215,10 @@ func (m *DBModel) GetLastInsertedCustomerID() (int, error) {
 	var customerID int
 	err := m.DB.QueryRowContext(ctx, getIDQuery).Scan(&customerID)
 	if err != nil {
-		logQueryError("GetLastInsertedCustomerID", getIDQuery, nil, err)
 		return 0, fmt.Errorf("failed to get last inserted customer ID: %w", err)
 	}
 
 	return customerID, nil
-}
-
-// logQueryError logs detailed information about query execution failures.
-func logQueryError(operation, query string, params interface{}, err error) {
-	log.Printf("[%s] Query failed.\nQuery: %s\nParams: %+v\nError: %v", operation, query, params, err)
 }
 
 // CheckCustomerExistence checks if a customer exists based on their email.
