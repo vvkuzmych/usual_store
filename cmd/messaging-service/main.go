@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 	"usual_store/internal/messaging"
+	"usual_store/internal/workerpool"
 )
 
 const version = "1.0.0"
@@ -27,6 +29,10 @@ type config struct {
 		port     int
 		username string
 		password string
+	}
+	workers struct {
+		count      int
+		bufferSize int
 	}
 }
 
@@ -46,6 +52,9 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-user", getEnv("SMTP_USER", ""), "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-pass", getEnv("SMTP_PASSWORD", ""), "SMTP password")
 
+	flag.IntVar(&cfg.workers.count, "workers", getEnvInt("EMAIL_WORKER_COUNT", 10), "Number of email workers")
+	flag.IntVar(&cfg.workers.bufferSize, "buffer", getEnvInt("EMAIL_WORKER_BUFFER", 100), "Worker job buffer size")
+
 	flag.Parse()
 
 	cfg.kafka.brokers = strings.Split(*kafkaBrokers, ",")
@@ -59,16 +68,23 @@ func main() {
 	infoLog.Printf("Kafka Brokers: %v", cfg.kafka.brokers)
 	infoLog.Printf("Kafka Topic: %s", cfg.kafka.topic)
 	infoLog.Printf("Kafka Group ID: %s", cfg.kafka.groupID)
+	infoLog.Printf("Worker Pool: %d workers, buffer size: %d", cfg.workers.count, cfg.workers.bufferSize)
 
 	// Create email handler
 	emailHandler := NewEmailHandler(cfg.smtp, infoLog, errorLog)
 
-	// Create Kafka consumer
-	consumer := messaging.NewConsumer(
+	// Create worker pool
+	pool := workerpool.New(cfg.workers.count, cfg.workers.bufferSize, infoLog)
+	pool.Start()
+	defer pool.Stop()
+
+	// Create Kafka consumer with worker pool
+	consumer := messaging.NewPooledConsumer(
 		cfg.kafka.brokers,
 		cfg.kafka.topic,
 		cfg.kafka.groupID,
 		emailHandler,
+		pool,
 		infoLog,
 	)
 	defer func() {
@@ -104,6 +120,16 @@ func main() {
 	}
 
 	cancel()
+
+	// Give workers time to finish current jobs
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	infoLog.Println("Waiting for workers to finish...")
+	if err := pool.StopWithContext(shutdownCtx); err != nil {
+		errorLog.Printf("Worker pool shutdown timeout: %v", err)
+	}
+
 	infoLog.Println("Messaging service stopped gracefully")
 }
 
